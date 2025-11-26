@@ -1,0 +1,350 @@
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        // 主相机界面
+        Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            iconTheme: const IconThemeData(color: Colors.white),
+            actions: [
+              IconButton(
+                icon: Icon(_isFlashOn ? Icons.flash_on : Icons.flash_off),
+                onPressed: () {
+                  setState(() {
+                    _isFlashOn = !_isFlashOn;
+                    // TODO: Implement flash control
+                  });
+                },
+              ),
+              // 添加网格切换按钮
+              IconButton(
+                icon: Icon(_showGrid ? Icons.grid_on : Icons.grid_off),
+                onPressed: () {
+                  setState(() {
+                    _showGrid = !_showGrid;
+                  });
+                },
+              ),
+            ],
+          ),
+          body: Stack(
+            children: [
+              // TODO: Add camera preview here
+              const Center(
+                child: Text('将题目放入框内', style: TextStyle(color: Colors.white70)),
+              ),
+
+              // 顶部提示栏
+              Positioned(
+                top: MediaQuery.of(context).padding.top + kToolbarHeight + 16,
+                left: 16,
+                right: 16,
+                child: Column(
+                  children: [
+                    if (_errorMessage != null)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.error.withOpacity(0.8),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          _errorMessage!,
+                          style: const TextStyle(color: Colors.white, fontSize: 14),
+                        ),
+                      ),
+                    if (_hasCachedQuestions)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withOpacity(0.8),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.offline_pin, color: Colors.white),
+                            const SizedBox(width: 8),
+                            const Expanded(
+                              child: Text(
+                                '有可用的离线题目',
+                                style: TextStyle(color: Colors.white, fontSize: 14),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const CachedQuestionsPage(),
+                                  ),
+                                );
+                              },
+                              child: const Text(
+                                '查看',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+
+              // 模式选择器
+              Positioned(
+                top:
+                    MediaQuery.of(context).padding.top +
+                    kToolbarHeight +
+                    (_errorMessage != null ? 80.0 : 16.0),
+                right: 16,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      GestureDetector(
+                        onTap: () => setState(() => _mode = RecognitionMode.single),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _mode == RecognitionMode.single
+                                ? AppTheme.primary
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Text(
+                            '单题',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => setState(() => _mode = RecognitionMode.batch),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _mode == RecognitionMode.batch
+                                ? AppTheme.primary
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Text(
+                            '批量',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // 选中的图片预览
+              if (_mode == RecognitionMode.batch && _selectedImages.isNotEmpty)
+                Positioned(
+                  right: 16,
+                  bottom: 100,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '已选择${_selectedImages.length}张图片',
+                          style: const TextStyle(color: Colors.white, fontSize: 12),
+                        ),
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              _selectedImages.clear();
+                            });
+                          },
+                          child: const Text(
+                            '清除',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+              // 相机覆盖层和指示框
+              GestureDetector(
+                onTapUp: _handleTapToFocus,
+                child: Center(
+                  child: SizedBox(
+                    width: MediaQuery.of(context).size.width * 0.8,
+                    height: MediaQuery.of(context).size.width * 1.2,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        // 网格和聚焦点
+                        CameraOverlay(
+                          showGrid: _showGrid,
+                          showFocusPoint: _focusPoint != null,
+                          focusPoint: _focusPoint,
+                        ),
+                        // 边框
+                        Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: _errorMessage != null
+                                  ? AppTheme.error
+                                  : Colors.white,
+                              width: 2,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              // 底部控制栏
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      IconButton(
+                        icon: const Icon(
+                          Icons.photo_library,
+                          color: Colors.white,
+                          size: 32,
+                        ),
+                        onPressed: _isProcessing
+                            ? null
+                            : () async {
+                                final ImagePicker picker = ImagePicker();
+                                final List<XFile> images = await picker
+                                    .pickMultiImage();
+
+                                if (images.isEmpty) return;
+
+                                if (_mode == RecognitionMode.single) {
+                                  await _processImage(File(images.first.path));
+                                } else {
+                                  await _processBatchImages(
+                                    images.map((x) => File(x.path)).toList(),
+                                  );
+                                }
+                              },
+                      ),
+                      GestureDetector(
+                        onTap: _isProcessing
+                            ? null
+                            : () async {
+                                if (_mode == RecognitionMode.batch) {
+                                  // 在批量模式下，添加到选中列表
+                                  final image = await _picker.pickImage(
+                                    source: ImageSource.camera,
+                                    preferredCameraDevice: CameraDevice.rear,
+                                  );
+
+                                  if (image != null) {
+                                    setState(() {
+                                      _selectedImages.add(File(image.path));
+                                    });
+
+                                    // 如果已选择3张图片，自动开始处理
+                                    if (_selectedImages.length >= 3) {
+                                      await _processBatchImages(_selectedImages);
+                                    }
+                                  }
+                                } else {
+                                  // 单题模式直接拍照并处理
+                                  await _takePhoto();
+                                }
+                              },
+                        child: Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 4),
+                          ),
+                          child: _isProcessing
+                              ? const Center(
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(
+                                      Icons.camera,
+                                      color: Colors.white,
+                                      size: 32,
+                                    ),
+                                    if (_mode == RecognitionMode.batch)
+                                      Text(
+                                        '${_selectedImages.length}/3',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.help_outline,
+                          color: Colors.white,
+                          size: 32,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _showGuide = true;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // 拍照引导覆盖层
+        if (_showGuide)
+          CameraGuide(
+            onFinish: () {
+              setState(() {
+                _showGuide = false;
+              });
+            },
+          ),
+      ],
+    );
+  }

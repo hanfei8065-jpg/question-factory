@@ -1,0 +1,37 @@
+Launching lib/main.dart on Fei的iPhone in debug mode...
+Automatically signing iOS for device deployment using specified development team in Xcode project: HQN6CV33U5
+Running Xcode build...                                          
+Xcode build done.                                           14.1s
+Installing and launching...                                        26.1s
+Syncing files to device Fei的iPhone...                              130ms
+
+Flutter run key commands.
+r Hot reload. 🔥🔥🔥
+R Hot restart.
+h List all available interactive commands.
+d Detach (terminate "flutter run" but leave application running).
+c Clear the screen
+q Quit (terminate the application on the device).
+
+A Dart VM Service on Fei的iPhone is available at: http://127.0.0.1:56066/7m_N2_SMV7E=/
+The Flutter DevTools debugger and profiler on Fei的iPhone is available at: http://127.0.0.1:9101?uri=http://127.0.0.1:56066/7m_N2_SMV7E=/
+flutter: 🔍 检查相机权限...
+flutter: 📷 相机权限状态: PermissionStatus.denied
+flutter: 📹 当前相机状态: CameraState.initializing
+flutter: 💬 气泡显示状态: false
+flutter: ❌ 权限未授予，显示气泡
+flutter: 🔍 检查相机权限...
+flutter: 📷 相机权限状态: PermissionStatus.denied
+flutter: 📹 当前相机状态: CameraState.initializing
+flutter: 💬 气泡显示状态: false
+flutter: ❌ 权限未授予，显示气泡
+flutter: 🔄 应用生命周期变化: AppLifecycleState.inactive
+flutter: 🔄 应用生命周期变化: AppLifecycleState.hidden
+flutter: 🔄 应用生命周期变化: AppLifecycleState.paused
+
+The OS has terminated the Flutter debug connection for being inactive in the background for too long.
+
+There are no errors with your Flutter application.
+
+To reconnect, launch your application again via 'flutter run'
+Lost connection to device.

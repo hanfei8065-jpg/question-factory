@@ -1,0 +1,34 @@
+name: Auto Question Factory (High Frequency)
+
+on:
+  schedule:
+    - cron: '*/2 * * * *'
+  workflow_dispatch:
+
+jobs:
+  trigger-factory:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Debug Secrets Length
+        run: |
+          echo "URL length: ${#SUPABASE_URL}"
+          echo "KEY length: ${#SUPABASE_KEY}"
+            echo "URL value: $SUPABASE_URL" # Added for debugging purposes
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+      - name: Call Supabase Edge Function
+        run: |
+          echo "Triggering Question Factory..."
+          response=$(curl -v -w "\nHTTP_STATUS:%{http_code}" -X POST \
+            "$SUPABASE_URL" \
+            -H "Authorization: Bearer $SUPABASE_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{}')
+          echo "Full curl response: $response"
+          if [[ "$response" == *"HTTP_STATUS:200"* ]]; then
+            echo "✅ Success! Questions generated."
+          else
+            echo "❌ Failed! Check logs above."
+            exit 1
+          fi

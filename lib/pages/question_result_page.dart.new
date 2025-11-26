@@ -1,0 +1,303 @@
+import 'package:flutter/material.dart';
+import 'dart:math' as math;
+import 'dart:io';
+import '../services/mistake_book_service.dart';
+import '../pages/mistake_book_page.dart';
+import '../theme/theme.dart';
+import '../widgets/celebration_overlay.dart';
+import '../widgets/fade_slide_transition.dart';
+
+class QuestionResultPage extends StatefulWidget {
+  final bool isCorrect;
+  final String question;
+  final String answer;
+  final String explanation;
+  final String subject;
+  final String difficulty;
+  final File? questionImage;
+
+  const QuestionResultPage({
+    super.key,
+    required this.isCorrect,
+    required this.question,
+    required this.answer,
+    required this.explanation,
+    required this.subject,
+    required this.difficulty,
+    this.questionImage,
+  });
+
+  @override
+  State<QuestionResultPage> createState() => _QuestionResultPageState();
+}
+
+class _QuestionResultPageState extends State<QuestionResultPage>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late TextEditingController _answerController;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _rotateAnimation;
+  bool _isSaving = false;
+  bool _savedToMistakeBook = false;
+  bool _showAnswer = false;
+  bool _showCelebration = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _answerController = TextEditingController();
+
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+
+    _scaleAnimation = TweenSequence([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.0, end: 1.2)
+            .chain(CurveTween(curve: Curves.elasticOut)),
+        weight: 60.0,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.2, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeOut)),
+        weight: 40.0,
+      ),
+    ]).animate(_controller);
+
+    _rotateAnimation = TweenSequence([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: -0.3, end: 0.2)
+            .chain(CurveTween(curve: Curves.elasticOut)),
+        weight: 60.0,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.2, end: 0.0)
+            .chain(CurveTween(curve: Curves.easeOut)),
+        weight: 40.0,
+      ),
+    ]).animate(_controller);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _answerController.dispose();
+    super.dispose();
+  }
+
+  void _checkAnswer() {
+    if (_answerController.text.trim() == widget.answer.trim()) {
+      setState(() {
+        _showCelebration = true;
+      });
+      // 播放庆祝动画2秒
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          setState(() {
+            _showCelebration = false;
+            _showAnswer = true;
+          });
+        }
+      });
+    } else {
+      // 答案不正确，显示提示
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('再想想看，答案似乎不太对呢～'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _saveToMistakeBook() async {
+    if (_isSaving || _savedToMistakeBook) return;
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      await MistakeBookService().addMistake(
+        question: widget.question,
+        answer: widget.answer,
+        explanation: widget.explanation,
+        subject: widget.subject,
+        difficulty: widget.difficulty,
+      );
+
+      setState(() {
+        _savedToMistakeBook = true;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('已加入错题本')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('保存失败，请重试')),
+        );
+      }
+    } finally {
+      setState(() {
+        _isSaving = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('题目详情'),
+        actions: [
+          IconButton(
+            icon: Icon(
+              Icons.calculate,
+              color: Theme.of(context).primaryColor,
+            ),
+            onPressed: () {
+              Navigator.pushNamed(context, '/calculator');
+            },
+          ),
+        ],
+      ),
+      body: Stack(
+        children: [
+          ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              // 原始题目图片
+              if (widget.questionImage != null)
+                Card(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.file(widget.questionImage!),
+                  ),
+                ),
+
+              const SizedBox(height: 16),
+
+              // 识别出的题目文本
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '题目内容',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(widget.question),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // 答案输入区域
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '你的答案',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _answerController,
+                        decoration: InputDecoration(
+                          hintText: '请先自己思考并输入答案',
+                          hintStyle: TextStyle(color: Colors.grey[400]),
+                          suffixIcon: IconButton(
+                            icon: const Icon(Icons.send),
+                            onPressed: _checkAnswer,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // 查看答案按钮
+              if (!_showAnswer)
+                Center(
+                  child: TextButton.icon(
+                    icon: const Icon(Icons.visibility),
+                    label: const Text('查看答案'),
+                    onPressed: () {
+                      setState(() {
+                        _showAnswer = true;
+                      });
+                    },
+                  ),
+                ),
+
+              // 答案和解析
+              if (_showAnswer) ...[
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '正确答案',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(widget.answer),
+                        const SizedBox(height: 16),
+                        Text(
+                          '解题过程',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(widget.explanation),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // 加入错题本按钮
+                Center(
+                  child: ElevatedButton.icon(
+                    icon: Icon(
+                      _savedToMistakeBook ? Icons.check : Icons.add,
+                    ),
+                    label: Text(
+                      _savedToMistakeBook ? '已加入错题本' : '加入错题本',
+                    ),
+                    onPressed: _savedToMistakeBook ? null : _saveToMistakeBook,
+                  ),
+                ),
+              ],
+            ],
+          ),
+
+          // 庆祝动画
+          if (_showCelebration)
+            const CelebrationOverlay(
+              message: 'Bingo!',
+              duration: Duration(seconds: 2),
+            ),
+        ],
+      ),
+    );
+  }
+}

@@ -1,0 +1,27 @@
+name: Auto Question Factory (New)
+
+on:
+  schedule:
+    # Run every 2 minutes (High Frequency Mode)
+    - cron: '*/2 * * * *'
+  workflow_dispatch:
+
+jobs:
+  trigger-factory:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Supabase Edge Function
+        run: |
+          echo "Triggering New Question Factory..."
+          response=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST \
+            "${{ secrets.SUPABASE_URL }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{}')
+          echo "Response: $response"
+          if [[ "$response" == *"HTTP_STATUS:200"* ]]; then
+            echo "✅ Success! Questions generated."
+          else
+            echo "❌ Failed! Check logs above."
+            exit 1
+          fi

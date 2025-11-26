@@ -1,0 +1,22 @@
+  Future<List<Map<String, dynamic>>> recognizeQuestionsFromImages(
+    List<File> imageFiles, {
+    bool useCache = true,
+    bool preprocessImages = true,
+  }) async {
+    List<Map<String, dynamic>> results = [];
+
+    for (var file in imageFiles) {
+      try {
+        final result = await recognizeQuestionFromImage(
+          file,
+          useCache: useCache,
+          preprocessImage: preprocessImages,
+        );
+        results.add(result);
+      } catch (e) {
+        debugPrint('处理图片失败: $e');
+      }
+    }
+
+    return results;
+  }

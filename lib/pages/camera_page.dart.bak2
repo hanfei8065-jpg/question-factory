@@ -1,0 +1,1087 @@
+import 'dart:async';import 'dart:io';
+
+import 'dart:io';import 'package:flutter/material.dart';
+
+import 'package:flutter/material.dart';import 'package:camera/camera.dart';
+
+import 'package:camera/camera.dart';import 'package:permission_handler/permission_handler.dart';
+
+import 'package:permission_handler/permission_handler.dart';import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../services/openai_service.dart';
+
+import '../services/openai_service.dart';import '../services/camera_service.dart';
+
+import '../services/camera_service.dart';import '../services/question_cache_service.dart';
+
+import '../services/question_cache_service.dart';import '../services/test_mode_service.dart';
+
+import '../services/test_mode_service.dart';
+
+import '../models/recognition_mode.dart';
+
+import '../models/recognition_mode.dart';import '../widgets/camera_permission_guide.dart';
+
+import '../widgets/camera_permission_guide.dart';import 'cached_questions_page.dart';
+
+import 'cached_questions_page.dart';import 'question_result_page.dart';
+
+import 'question_result_page.dart';
+
+class CameraPage extends StatefulWidget {
+
+class CameraPage extends StatefulWidget {  const CameraPage({super.key});
+
+  const CameraPage({super.key});
+
+  @override
+
+  @override  State<CameraPage> createState() => _CameraPageState();
+
+  State<CameraPage> createState() => _CameraPageState();}
+
+}
+
+class _CameraPageState extends State<CameraPage> {
+
+class _CameraPageState extends State<CameraPage> {  bool _hasCachedQuestions = false;
+
+  bool _hasCachedQuestions = false;  bool _showGuide = false;
+
+  bool _showGuide = false;  bool _showGrid = true;
+
+  bool _showGrid = true;  bool _isFlashOn = false;
+
+  bool _isFlashOn = false;  bool _showExposureSlider = false;
+
+  bool _showExposureSlider = false;  double _currentExposure = 0.0;
+
+  double _currentExposure = 0.0;  double _maxExposure = 1.0;
+
+  double _maxExposure = 1.0;  double _minExposure = -1.0;
+
+  double _minExposure = -1.0;  bool _showTimer = false;
+
+  bool _showTimer = false;  int _countdownSeconds = 0;
+
+  int _countdownSeconds = 0;  
+
+  Timer? _countdownTimer;  final List<File> _testImages = [];
+
+    final List<File> _batchImages = [];
+
+  final List<File> _testImages = [];  String? _errorMessage;
+
+  final List<File> _batchImages = [];  final int _maxRetries = 3;
+
+  String? _errorMessage;  
+
+  final int _maxRetries = 3;  RecognitionMode _mode = RecognitionMode.single;
+
+    bool _isProcessing = false;
+
+  RecognitionMode _mode = RecognitionMode.single;
+
+  bool _isProcessing = false;  @override
+
+  void initState() {
+
+  @override    super.initState();
+
+  void initState() {    if (!TestModeService().isTestMode) {
+
+    super.initState();      _checkCameraPermission();
+
+    if (!TestModeService().isTestMode) {    }
+
+      _checkCameraPermission();    _checkOfflineCache();
+
+    }    _checkShowGuide();
+
+    _checkOfflineCache();
+
+    _checkShowGuide();    if (TestModeService().isTestMode) {
+
+      _loadTestImages();
+
+    if (TestModeService().isTestMode) {    }
+
+      _loadTestImages();  }
+
+    }
+
+  }  @override
+
+  void dispose() {
+
+  @override    if (!TestModeService().isTestMode) {
+
+  void dispose() {      CameraService().dispose();
+
+    _countdownTimer?.cancel();    }
+
+    if (!TestModeService().isTestMode) {    super.dispose();
+
+      CameraService().dispose();  }
+
+    }
+
+    super.dispose();  Future<void> _checkCameraPermission() async {
+
+  }    final status = await Permission.camera.status;
+
+    if (status.isGranted) {
+
+  Future<void> _checkCameraPermission() async {      await _initCamera();
+
+    final status = await Permission.camera.status;    } else if (status.isPermanentlyDenied) {
+
+    if (status.isGranted) {      setState(() {
+
+      await _initCamera();        _errorMessage = '相机权限被永久拒绝，请在系统设置中手动开启';
+
+    } else if (status.isPermanentlyDenied) {      });
+
+      setState(() {    } else {
+
+        _errorMessage = '相机权限被永久拒绝，请在系统设置中手动开启';      final result = await Permission.camera.request();
+
+      });      if (result.isGranted) {
+
+    } else {        await _initCamera();
+
+      final result = await Permission.camera.request();      } else {
+
+      if (result.isGranted) {        setState(() {
+
+        await _initCamera();          _errorMessage = '需要相机权限才能使用该功能';
+
+      } else {        });
+
+        setState(() {      }
+
+          _errorMessage = '需要相机权限才能使用该功能';    }
+
+        });  }
+
+      }
+
+    }  Future<void> _initCamera() async {
+
+  }    try {
+
+      await CameraService().initialize();
+
+  Future<void> _initCamera() async {      setState(() {
+
+    try {        _errorMessage = null;
+
+      await CameraService().initialize();      });
+
+      setState(() {    } catch (e) {
+
+        _errorMessage = null;      setState(() {
+
+      });        _errorMessage = e.toString();
+
+      });
+
+      // 初始化曝光范围    }
+
+      final minExposure = await CameraService().controller.getMinExposureOffset();  }
+
+      final maxExposure = await CameraService().controller.getMaxExposureOffset();
+
+      setState(() {  Future<void> _checkOfflineCache() async {
+
+        _minExposure = minExposure;    final hasCachedQuestions = await QuestionCacheService().hasOfflineQuestions();
+
+        _maxExposure = maxExposure;    setState(() {
+
+      });      _hasCachedQuestions = hasCachedQuestions;
+
+    } catch (e) {    });
+
+      setState(() {  }
+
+        _errorMessage = e.toString();
+
+      });  Future<void> _checkShowGuide() async {
+
+    }    final prefs = await SharedPreferences.getInstance();
+
+  }    final hasShownGuide = prefs.getBool('hasShownCameraGuide') ?? false;
+
+    if (!hasShownGuide) {
+
+  Future<void> _startCountdown() async {      setState(() {
+
+    setState(() {        _showGuide = true;
+
+      _countdownSeconds = 3;      });
+
+    });      await prefs.setBool('hasShownCameraGuide', true);
+
+        }
+
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {  }
+
+      setState(() {
+
+        if (_countdownSeconds > 1) {  Future<void> _loadTestImages() async {
+
+          _countdownSeconds--;    try {
+
+        } else {      final Directory testImagesDir = Directory('test_images');
+
+          _countdownTimer?.cancel();      if (await testImagesDir.exists()) {
+
+          _countdownSeconds = 0;        final testImages = await testImagesDir
+
+          _takePicture();            .list()
+
+        }            .where((entity) =>
+
+      });                entity is File &&
+
+    });                (entity.path.endsWith('.jpg') || entity.path.endsWith('.png')))
+
+  }            .map((entity) => entity as File)
+
+            .toList();
+
+  Future<void> _checkOfflineCache() async {
+
+    final hasCachedQuestions = await QuestionCacheService().hasOfflineQuestions();        setState(() {
+
+    setState(() {          _testImages.addAll(testImages);
+
+      _hasCachedQuestions = hasCachedQuestions;        });
+
+    });      }
+
+  }    } catch (e) {
+
+      print('Error loading test images: $e');
+
+  Future<void> _checkShowGuide() async {    }
+
+    final prefs = await SharedPreferences.getInstance();  }
+
+    final hasShownGuide = prefs.getBool('hasShownCameraGuide') ?? false;
+
+    if (!hasShownGuide) {  @override
+
+      setState(() {  Widget build(BuildContext context) {
+
+        _showGuide = true;    if (_showGuide) {
+
+      });      return Scaffold(
+
+      await prefs.setBool('hasShownCameraGuide', true);        body: SafeArea(
+
+    }          child: Padding(
+
+  }            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+
+            child: Column(
+
+  Future<void> _loadTestImages() async {              mainAxisAlignment: MainAxisAlignment.center,
+
+    try {              children: [
+
+      final Directory testImagesDir = Directory('test_images');                const Icon(
+
+      if (await testImagesDir.exists()) {                  Icons.camera_alt,
+
+        final testImages = await testImagesDir                  size: 64,
+
+            .list()                  color: Colors.blue,
+
+            .where((entity) =>                ),
+
+                entity is File &&                const SizedBox(height: 32),
+
+                (entity.path.endsWith('.jpg') || entity.path.endsWith('.png')))                const Text(
+
+            .map((entity) => entity as File)                  '相机使用指南',
+
+            .toList();                  style: TextStyle(
+
+                    fontSize: 24,
+
+        setState(() {                    fontWeight: FontWeight.bold,
+
+          _testImages.addAll(testImages);                  ),
+
+        });                ),
+
+      }                const SizedBox(height: 24),
+
+    } catch (e) {                const Text(
+
+      print('Error loading test images: $e');                  '1. 请将试题放在取景框中心\n'
+
+    }                  '2. 确保光线充足，避免反光和阴影\n'
+
+  }                  '3. 保持手机稳定，避免晃动\n'
+
+                  '4. 可以使用网格线辅助对齐\n'
+
+  Future<void> _takePicture() async {                  '5. 拍摄时尽量保持整张试题纸可见',
+
+    if (_isProcessing) return;                  style: TextStyle(fontSize: 16),
+
+                ),
+
+    // 先对焦                const SizedBox(height: 32),
+
+    try {                ElevatedButton(
+
+      if (!TestModeService().isTestMode) {                  onPressed: () {
+
+        await CameraService().controller.setFocusMode(FocusMode.auto);                    setState(() {
+
+        await Future.delayed(const Duration(milliseconds: 300));                      _showGuide = false;
+
+      }                    });
+
+    } catch (e) {                  },
+
+      print('Focus error: $e');                  style: ElevatedButton.styleFrom(
+
+    }                    minimumSize: const Size(200, 48),
+
+                      ),
+
+    // 防抖延时                  child: const Text('我知道了'),
+
+    setState(() {                ),
+
+      _errorMessage = '请保持手机稳定...';              ],
+
+    });            ),
+
+    await Future.delayed(const Duration(milliseconds: 500));          ),
+
+        ),
+
+    setState(() {      );
+
+      _errorMessage = null;    }
+
+    });
+
+        return Scaffold(
+
+    final File? imageFile;      body: Stack(
+
+    if (TestModeService().isTestMode && _testImages.isNotEmpty) {        children: [
+
+      imageFile = _testImages.first;          if (CameraService().isInitialized)
+
+    } else {            AspectRatio(
+
+      try {              aspectRatio: CameraService().controller.value.aspectRatio,
+
+        final image = await CameraService().takePicture();              child: CameraPreview(CameraService().controller),
+
+        imageFile = image != null ? File(image.path) : null;            )
+
+      } catch (e) {          else if (_errorMessage == null)
+
+        setState(() {            CameraPermissionGuide(
+
+          _errorMessage = e.toString();              onPermissionGranted: _initCamera,
+
+        });            ),
+
+        return;          
+
+      }          if (_showGrid)
+
+    }            CustomPaint(
+
+              size: Size.infinite,
+
+    if (imageFile != null) {              painter: GridPainter(),
+
+      if (_mode == RecognitionMode.batch) {            ),
+
+        setState(() {
+
+          _batchImages.add(imageFile);          if (_isProcessing)
+
+        });            const Center(
+
+      } else {              child: CircularProgressIndicator(),
+
+        await _processImage(imageFile);            ),
+
+      }
+
+    }          if (_errorMessage != null)
+
+  }            Center(
+
+              child: Text(
+
+  @override                _errorMessage!,
+
+  Widget build(BuildContext context) {                style: const TextStyle(color: Colors.red),
+
+    if (_showGuide) {              ),
+
+      return Scaffold(            ),
+
+        body: SafeArea(
+
+          child: Padding(          if (_showExposureSlider)
+
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),            Positioned(
+
+            child: Column(              top: 20,
+
+              mainAxisAlignment: MainAxisAlignment.center,              left: 0,
+
+              children: [              right: 0,
+
+                const Icon(              child: Container(
+
+                  Icons.camera_alt,                color: Colors.black54,
+
+                  size: 64,                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+
+                  color: Colors.blue,                child: Row(
+
+                ),                  children: [
+
+                const SizedBox(height: 32),                    const Icon(Icons.brightness_6, color: Colors.white),
+
+                const Text(                    Expanded(
+
+                  '相机使用指南',                      child: Slider(
+
+                  style: TextStyle(                        value: _currentExposure,
+
+                    fontSize: 24,                        min: _minExposure,
+
+                    fontWeight: FontWeight.bold,                        max: _maxExposure,
+
+                  ),                        onChanged: (value) {
+
+                ),                          setState(() {
+
+                const SizedBox(height: 24),                            _currentExposure = value;
+
+                const Text(                          });
+
+                  '1. 请将试题放在取景框中心\n'                          CameraService().controller.setExposureOffset(value);
+
+                  '2. 确保光线充足，避免反光和阴影\n'                        },
+
+                  '3. 保持手机稳定，避免晃动\n'                      ),
+
+                  '4. 可以使用网格线辅助对齐\n'                    ),
+
+                  '5. 拍摄时尽量保持整张试题纸可见',                  ],
+
+                  style: TextStyle(fontSize: 16),                ),
+
+                ),              ),
+
+                const SizedBox(height: 32),            ),
+
+                ElevatedButton(
+
+                  onPressed: () {          if (_showTimer && _countdownSeconds > 0)
+
+                    setState(() {            Center(
+
+                      _showGuide = false;              child: Container(
+
+                    });                width: 60,
+
+                  },                height: 60,
+
+                  style: ElevatedButton.styleFrom(                decoration: BoxDecoration(
+
+                    minimumSize: const Size(200, 48),                  color: Colors.black54,
+
+                  ),                  borderRadius: BorderRadius.circular(30),
+
+                  child: const Text('我知道了'),                ),
+
+                ),                child: Center(
+
+              ],                  child: Text(
+
+            ),                    '$_countdownSeconds',
+
+          ),                    style: const TextStyle(
+
+        ),                      color: Colors.white,
+
+      );                      fontSize: 32,
+
+    }                      fontWeight: FontWeight.bold,
+
+                    ),
+
+    return Scaffold(                  ),
+
+      body: Stack(                ),
+
+        children: [              ),
+
+          if (CameraService().isInitialized)            ),
+
+            AspectRatio(
+
+              aspectRatio: CameraService().controller.value.aspectRatio,          Positioned(
+
+              child: CameraPreview(CameraService().controller),            bottom: 20,
+
+            )            left: 0,
+
+          else if (_errorMessage == null)            right: 0,
+
+            CameraPermissionGuide(            child: Column(
+
+              onPermissionGranted: _initCamera,              children: [
+
+            ),                if (_mode == RecognitionMode.batch && _batchImages.isNotEmpty)
+
+                            Container(
+
+          if (_showGrid)                    height: 60,
+
+            CustomPaint(                    margin: const EdgeInsets.only(bottom: 20),
+
+              size: Size.infinite,                    child: ListView.builder(
+
+              painter: GridPainter(),                      scrollDirection: Axis.horizontal,
+
+            ),                      itemCount: _batchImages.length,
+
+                      itemBuilder: (context, index) {
+
+          if (_showExposureSlider)                        return Container(
+
+            Positioned(                          width: 60,
+
+              top: 20,                          height: 60,
+
+              left: 0,                          margin: const EdgeInsets.symmetric(horizontal: 4),
+
+              right: 0,                          decoration: BoxDecoration(
+
+              child: Container(                            border: Border.all(color: Colors.white),
+
+                color: Colors.black54,                            image: DecorationImage(
+
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),                              image: FileImage(_batchImages[index]),
+
+                child: Row(                              fit: BoxFit.cover,
+
+                  children: [                            ),
+
+                    const Icon(Icons.brightness_6, color: Colors.white),                          ),
+
+                    Expanded(                        );
+
+                      child: Slider(                      },
+
+                        value: _currentExposure,                    ),
+
+                        min: _minExposure,                  ),
+
+                        max: _maxExposure,                Row(
+
+                        onChanged: (value) {                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+
+                          setState(() {                  children: [
+
+                            _currentExposure = value;                IconButton(
+
+                          });                  icon: Icon(
+
+                          CameraService().controller.setExposureOffset(value);                    _isFlashOn ? Icons.flash_on : Icons.flash_off,
+
+                        },                    color: Colors.white,
+
+                      ),                  ),
+
+                    ),                  onPressed: () async {
+
+                  ],                    setState(() {
+
+                ),                      _isFlashOn = !_isFlashOn;
+
+              ),                    });
+
+            ),                    await CameraService().setFlashMode(_isFlashOn);
+
+                  },
+
+          if (_countdownSeconds > 0)                ),
+
+            Center(                IconButton(
+
+              child: Container(                  icon: Icon(
+
+                width: 60,                    _mode == RecognitionMode.single ? Icons.camera_alt : Icons.camera,
+
+                height: 60,                    color: Colors.white,
+
+                decoration: BoxDecoration(                  ),
+
+                  color: Colors.black54,                  onPressed: () => setState(() {
+
+                  borderRadius: BorderRadius.circular(30),                    _mode = _mode == RecognitionMode.single
+
+                ),                        ? RecognitionMode.batch
+
+                child: Center(                        : RecognitionMode.single;
+
+                  child: Text(                  }),
+
+                    '$_countdownSeconds',                ),
+
+                    style: const TextStyle(                IconButton(
+
+                      color: Colors.white,                  icon: Icon(
+
+                      fontSize: 32,                    Icons.grid_on,
+
+                      fontWeight: FontWeight.bold,                    color: _showGrid ? Colors.yellow : Colors.white,
+
+                    ),                  ),
+
+                  ),                  onPressed: () => setState(() {
+
+                ),                    _showGrid = !_showGrid;
+
+              ),                  }),
+
+            ),                ),
+
+                IconButton(
+
+          if (_isProcessing)                  icon: Icon(
+
+            const Center(                    Icons.timer,
+
+              child: CircularProgressIndicator(),                    color: _showTimer ? Colors.yellow : Colors.white,
+
+            ),                  ),
+
+                  onPressed: () {
+
+          if (_errorMessage != null)                    setState(() {
+
+            Center(                      _showTimer = !_showTimer;
+
+              child: Text(                      _countdownSeconds = _showTimer ? 3 : 0;
+
+                _errorMessage!,                    });
+
+                style: const TextStyle(color: Colors.red),                  },
+
+              ),                ),
+
+            ),                IconButton(
+
+                  icon: Icon(
+
+          Positioned(                    Icons.brightness_6,
+
+            bottom: 20,                    color: _showExposureSlider ? Colors.yellow : Colors.white,
+
+            left: 0,                  ),
+
+            right: 0,                  onPressed: () {
+
+            child: Column(                    setState(() {
+
+              children: [                      _showExposureSlider = !_showExposureSlider;
+
+                if (_mode == RecognitionMode.batch && _batchImages.isNotEmpty)                    });
+
+                  Container(                  },
+
+                    height: 60,                ),
+
+                    margin: const EdgeInsets.only(bottom: 20),                if (_hasCachedQuestions)
+
+                    child: ListView.builder(                  IconButton(
+
+                      scrollDirection: Axis.horizontal,                    icon: const Icon(Icons.history, color: Colors.white),
+
+                      padding: const EdgeInsets.symmetric(horizontal: 20),                    onPressed: () => Navigator.push(
+
+                      itemCount: _batchImages.length,                      context,
+
+                      itemBuilder: (context, index) {                      MaterialPageRoute(
+
+                        return Container(                        builder: (context) => const CachedQuestionsPage(),
+
+                          width: 60,                      ),
+
+                          height: 60,                    ),
+
+                          margin: const EdgeInsets.symmetric(horizontal: 4),                  ),
+
+                          decoration: BoxDecoration(                IconButton(
+
+                            border: Border.all(color: Colors.white),                  icon: const Icon(Icons.help_outline, color: Colors.white),
+
+                            image: DecorationImage(                  onPressed: () => setState(() => _showGuide = true),
+
+                              image: FileImage(_batchImages[index]),                ),
+
+                              fit: BoxFit.cover,              ],
+
+                            ),            ),
+
+                          ),          ),
+
+                        );        ],
+
+                      },      ),
+
+                    ),      floatingActionButton: FloatingActionButton(
+
+                  ),        onPressed: () async {
+
+                Row(          if (_isProcessing) return;
+
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+
+                  children: [          // 先对焦
+
+                    IconButton(          try {
+
+                      icon: Icon(            if (!TestModeService().isTestMode) {
+
+                        _isFlashOn ? Icons.flash_on : Icons.flash_off,              await CameraService().controller.setFocusMode(FocusMode.auto);
+
+                        color: Colors.white,              await Future.delayed(const Duration(milliseconds: 300));
+
+                      ),            }
+
+                      onPressed: () async {          } catch (e) {
+
+                        setState(() {            print('Focus error: $e');
+
+                          _isFlashOn = !_isFlashOn;          }
+
+                        });          
+
+                        await CameraService().setFlashMode(_isFlashOn);          // 防抖延时
+
+                      },          setState(() {
+
+                    ),            _errorMessage = '请保持手机稳定...';
+
+                    IconButton(          });
+
+                      icon: Icon(          await Future.delayed(const Duration(milliseconds: 500));
+
+                        _mode == RecognitionMode.single ? Icons.camera_alt : Icons.camera,          
+
+                        color: Colors.white,          final File? imageFile;
+
+                      ),          if (TestModeService().isTestMode && _testImages.isNotEmpty) {
+
+                      onPressed: () => setState(() {            imageFile = _testImages.first;
+
+                        _mode = _mode == RecognitionMode.single          } else {
+
+                            ? RecognitionMode.batch            try {
+
+                            : RecognitionMode.single;              setState(() {
+
+                        if (_mode == RecognitionMode.single) {                _errorMessage = null;
+
+                          _batchImages.clear();              });
+
+                        }              final image = await CameraService().takePicture();
+
+                      }),              imageFile = image != null ? File(image.path) : null;
+
+                    ),            } catch (e) {
+
+                    IconButton(              setState(() {
+
+                      icon: Icon(                _errorMessage = e.toString();
+
+                        Icons.grid_on,              });
+
+                        color: _showGrid ? Colors.yellow : Colors.white,              return;
+
+                      ),            }
+
+                      onPressed: () => setState(() {          }
+
+                        _showGrid = !_showGrid;
+
+                      }),          if (imageFile != null) {
+
+                    ),            await _processImage(imageFile);
+
+                    IconButton(          }
+
+                      icon: Icon(        },
+
+                        Icons.timer,        child: const Icon(Icons.camera),
+
+                        color: _showTimer ? Colors.yellow : Colors.white,      ),
+
+                      ),    );
+
+                      onPressed: () {  }
+
+                        setState(() {
+
+                          _showTimer = !_showTimer;  Future<void> _processImage(File imageFile) async {
+
+                        });    setState(() {
+
+                      },      _isProcessing = true;
+
+                    ),      _errorMessage = null;
+
+                    IconButton(    });
+
+                      icon: Icon(
+
+                        Icons.brightness_6,    try {
+
+                        color: _showExposureSlider ? Colors.yellow : Colors.white,      final bytes = await imageFile.readAsBytes();
+
+                      ),      if (bytes.length > 5 * 1024 * 1024) {
+
+                      onPressed: () {        throw Exception('图片太大，请选择小于5MB的图片');
+
+                        setState(() {      }
+
+                          _showExposureSlider = !_showExposureSlider;
+
+                        });      for (var retry = 0; retry < _maxRetries; retry++) {
+
+                      },        try {
+
+                    ),          final result = await OpenAIService().recognizeQuestionFromImage(imageFile);
+
+                    if (_hasCachedQuestions)
+
+                      IconButton(          if (!mounted) return;
+
+                        icon: const Icon(Icons.history, color: Colors.white),
+
+                        onPressed: () => Navigator.push(          Navigator.pushReplacement(
+
+                          context,            context,
+
+                          MaterialPageRoute(            MaterialPageRoute(
+
+                            builder: (context) => const CachedQuestionsPage(),              builder: (_) => QuestionResultPage(
+
+                          ),                isCorrect: true,
+
+                        ),                question: result['question'] as String,
+
+                      ),                answer: result['answer'] as String,
+
+                    IconButton(                explanation: result['explanation'] as String,
+
+                      icon: const Icon(Icons.help_outline, color: Colors.white),                subject: result['subject'] as String,
+
+                      onPressed: () => setState(() => _showGuide = true),                difficulty: result['difficulty'] as String,
+
+                    ),              ),
+
+                  ],            ),
+
+                ),          );
+
+              ],          return;
+
+            ),        } catch (e) {
+
+          ),          if (retry < _maxRetries - 1) {
+
+        ],            setState(() {
+
+      ),              _errorMessage = '第${retry + 1}次识别失败，正在重试...';
+
+      floatingActionButton: FloatingActionButton(            });
+
+        onPressed: _showTimer ? _startCountdown : _takePicture,            await Future.delayed(Duration(seconds: retry + 1));
+
+        child: const Icon(Icons.camera),            continue;
+
+      ),          }
+
+      bottomNavigationBar: _mode == RecognitionMode.batch && _batchImages.isNotEmpty          rethrow;
+
+          ? Container(        }
+
+              color: Colors.black54,      }
+
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),    } catch (e) {
+
+              child: Row(      if (mounted) {
+
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,        setState(() {
+
+                children: [          _errorMessage = e.toString();
+
+                  Text(          _isProcessing = false;
+
+                    '已拍摄 ${_batchImages.length} 张',        });
+
+                    style: const TextStyle(color: Colors.white),      }
+
+                  ),    }
+
+                  TextButton(  }
+
+                    onPressed: () async {}
+
+                      setState(() {
+
+                        _isProcessing = true;class GridPainter extends CustomPainter {
+
+                      });  @override
+
+                      for (final image in _batchImages) {  void paint(Canvas canvas, Size size) {
+
+                        await _processImage(image);    final paint = Paint()
+
+                      }      ..color = Colors.white.withOpacity(0.3)
+
+                      setState(() {      ..strokeWidth = 1;
+
+                        _batchImages.clear();
+
+                        _isProcessing = false;    // Draw horizontal lines
+
+                      });    for (var i = 1; i < 3; i++) {
+
+                    },      canvas.drawLine(
+
+                    child: const Text('开始识别'),        Offset(0, size.height * i / 3),
+
+                  ),        Offset(size.width, size.height * i / 3),
+
+                ],        paint,
+
+              ),      );
+
+            )    }
+
+          : null,
+
+    );    // Draw vertical lines
+
+  }    for (var i = 1; i < 3; i++) {
+
+      canvas.drawLine(
+
+  Future<void> _processImage(File imageFile) async {        Offset(size.width * i / 3, 0),
+
+    setState(() {        Offset(size.width * i / 3, size.height),
+
+      _isProcessing = true;        paint,
+
+      _errorMessage = null;      );
+
+    });    }
+
+  }
+
+    try {
+
+      final bytes = await imageFile.readAsBytes();  @override
+
+      if (bytes.length > 5 * 1024 * 1024) {  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+
+        throw Exception('图片太大，请选择小于5MB的图片');}
+
+      }
+
+      for (var retry = 0; retry < _maxRetries; retry++) {
+        try {
+          final result = await OpenAIService().recognizeQuestionFromImage(imageFile);
+
+          if (!mounted) return;
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => QuestionResultPage(
+                isCorrect: true,
+                question: result['question'] as String,
+                answer: result['answer'] as String,
+                explanation: result['explanation'] as String,
+                subject: result['subject'] as String,
+                difficulty: result['difficulty'] as String,
+              ),
+            ),
+          );
+          return;
+        } catch (e) {
+          if (retry < _maxRetries - 1) {
+            setState(() {
+              _errorMessage = '第${retry + 1}次识别失败，正在重试...';
+            });
+            await Future.delayed(Duration(seconds: retry + 1));
+            continue;
+          }
+          rethrow;
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+          _isProcessing = false;
+        });
+      }
+    }
+  }
+}
+
+class GridPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.3)
+      ..strokeWidth = 1;
+
+    // 绘制水平线
+    for (var i = 1; i < 3; i++) {
+      canvas.drawLine(
+        Offset(0, size.height * i / 3),
+        Offset(size.width, size.height * i / 3),
+        paint,
+      );
+    }
+
+    // 绘制垂直线
+    for (var i = 1; i < 3; i++) {
+      canvas.drawLine(
+        Offset(size.width * i / 3, 0),
+        Offset(size.width * i / 3, size.height),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
