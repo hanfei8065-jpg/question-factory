@@ -12,7 +12,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
 // 并发设置：一次触发同时跑几个任务
-const CONCURRENCY_LIMIT = 5; 
+const CONCURRENCY_LIMIT = 25; 
 // 超时设置：单个任务最大允许时间 (毫秒)
 const TASK_TIMEOUT_MS = 50000; 
 
