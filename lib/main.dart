@@ -1,145 +1,62 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'services/test_mode_service.dart';
-import 'package:learnest_fresh/pages/splash_page.dart';
-import 'package:learnest_fresh/pages/camera_page.dart';
-import 'package:learnest_fresh/pages/calculator_page.dart';
-import 'package:learnest_fresh/pages/question_result_page.dart';
-import 'package:learnest_fresh/pages/question_bank_page.dart';
-import 'package:learnest_fresh/pages/ai_teacher_page.dart';
-import 'package:learnest_fresh/models/question.dart' as model;
-import 'package:learnest_fresh/providers/app_state.dart';
-import 'package:learnest_fresh/core/constants.dart' hide Subject;
-import 'package:learnest_fresh/services/navigation_service.dart';
-import 'package:learnest_fresh/navigation/app_router.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'pages/splash_screen.dart';
+import 'pages/app_question_bank_page.dart';
+import 'pages/app_camera_page.dart';
+import 'pages/app_profile_page.dart';
 
-void main() async {
-  // 加载环境变量
-  await dotenv.load(fileName: '.env');
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  final prefs = await SharedPreferences.getInstance();
-
-  runApp(
-    MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => AppState(prefs))],
-      child: const MyApp(),
-    ),
-  );
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+  runApp(const LearnistApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class LearnistApp extends StatefulWidget {
+  const LearnistApp({super.key});
 
-  void _toggleTestMode(BuildContext context) {
-    final testMode = TestModeService();
-    if (testMode.isTestMode) {
-      testMode.disableTestMode();
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('测试模式已关闭')));
-    } else {
-      testMode.enableTestMode();
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('测试模式已开启')));
-    }
+  @override
+  State<LearnistApp> createState() => _LearnistAppState();
+}
+
+class _LearnistAppState extends State<LearnistApp> {
+  Locale _locale = const Locale('zh'); // 默认中文
+
+  void _changeLocale(Locale locale) {
+    setState(() {
+      _locale = locale;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Learnest AI',
-      navigatorKey: NavigationService.navigatorKey,
-      home: const SplashPage(),
-      builder: (context, child) {
-        return Scaffold(
-          body: child,
-          floatingActionButton: FloatingActionButton(
-            onPressed: () => _toggleTestMode(context),
-            child: const Icon(Icons.bug_report),
-          ),
-        );
-      },
+      title: 'Learnist.AI',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
+        scaffoldBackgroundColor: const Color(0xFFF5F7FA),
+        primaryColor: const Color(0xFF358373),
         colorScheme: ColorScheme.fromSeed(
-          seedColor: AppTheme.primary,
-          brightness: Brightness.light,
+          seedColor: const Color(0xFF358373),
+          primary: const Color(0xFF358373),
+          secondary: const Color(0xFF5FCEB3),
         ),
         useMaterial3: true,
-        scaffoldBackgroundColor: AppTheme.background,
-        cardTheme: CardThemeData(
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppTheme.borderRadius),
-          ),
-        ),
-        buttonTheme: ButtonThemeData(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppTheme.borderRadius),
-          ),
-        ),
-        textTheme: TextTheme(
-          titleLarge: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: AppTheme.text,
-          ),
-          titleMedium: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: AppTheme.text,
-          ),
-          titleSmall: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: AppTheme.text,
-          ),
-          bodyLarge: TextStyle(fontSize: 16, color: AppTheme.text),
-          bodyMedium: TextStyle(fontSize: 14, color: AppTheme.text),
-          bodySmall: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-        ),
+        fontFamily: 'Inter',
       ),
-      debugShowCheckedModeBanner: false,
-      onGenerateRoute: (settings) {
-        switch (settings.name) {
-          case '/camera':
-            return MaterialPageRoute(builder: (context) => const CameraPage());
-          case '/calculator':
-            return MaterialPageRoute(
-              builder: (context) => const CalculatorPage(),
-            );
-          case '/question-result':
-            final args = settings.arguments as Map<String, dynamic>;
-            return MaterialPageRoute(
-              builder: (context) => QuestionResultPage(
-                isCorrect: args['isCorrect'] as bool,
-                question: args['question'] as String,
-                answer: args['answer'] as String,
-                explanation: args['explanation'] as String,
-                subject: model.Subject.values
-                    .firstWhere(
-                      (s) =>
-                          s.toString().toLowerCase() ==
-                          (args['subject'] as String).toLowerCase(),
-                      orElse: () => model.Subject.math,
-                    )
-                    .name,
-                difficulty: (int.tryParse(args['difficulty'] as String) ?? 1)
-                    .toString(),
-              ),
-            );
-          default:
-            return null;
-        }
-      },
+      locale: _locale,
+  // 本地化相关配置已移除，直接硬编码中文
+      home: const SplashScreen(),
     );
   }
 }
 
 class MainNavigator extends StatefulWidget {
-  const MainNavigator({super.key});
+  final void Function(Locale)? onLocaleChange;
+  const MainNavigator({super.key, this.onLocaleChange});
 
   @override
   State<MainNavigator> createState() => _MainNavigatorState();
@@ -148,52 +65,82 @@ class MainNavigator extends StatefulWidget {
 class _MainNavigatorState extends State<MainNavigator> {
   int _currentIndex = 0;
 
-  late final List<Widget> _pages = [
-    const CameraPage(),
-    const QuestionBankPage(topic: '数学', message: '练习题'),
-    const AITeacherPage(),
+  final List<Locale> _locales = const [
+    Locale('zh'),
+    Locale('en'),
+    Locale('ja'),
+    Locale('es'),
   ];
 
-  final List<BottomNavigationBarItem> _items = const [
-    BottomNavigationBarItem(icon: Icon(Icons.camera_alt), label: '拍题'),
-    BottomNavigationBarItem(icon: Icon(Icons.emoji_events), label: '题库'),
-    BottomNavigationBarItem(icon: Icon(Icons.psychology), label: 'AI名师'),
+  final List<String> _localeNames = const ['中文', 'English', '日本語', 'Español'];
+
+  final List<Widget> _pages = [
+    const AppCameraPage(),
+    const AppQuestionBankPage(),
+    const AppProfilePage(),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final List<BottomNavigationBarItem> _items = [
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.camera_alt_rounded, size: 32),
+        label: '拍题',
+      ),
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.menu_book_rounded),
+        label: '题库',
+      ),
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.person_rounded),
+        label: '我的',
+      ),
+    ];
+
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: Text('题库', style: const TextStyle(color: Color(0xFF358373))),
+        actions: [
+          PopupMenuButton<int>(
+            icon: const Icon(Icons.language, color: Color(0xFF358373)),
+            onSelected: (idx) {
+              widget.onLocaleChange?.call(_locales[idx]);
+            },
+            itemBuilder: (context) => List.generate(
+              _locales.length,
+              (idx) =>
+                  PopupMenuItem(value: idx, child: Text(_localeNames[idx])),
+            ),
+          ),
+        ],
+      ),
       body: IndexedStack(index: _currentIndex, children: _pages),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withOpacity(0.05),
               blurRadius: 10,
-              offset: const Offset(0, -5),
+              offset: const Offset(0, -2),
             ),
           ],
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
-          onTap: (index) {
-            setState(() {
-              _currentIndex = index;
-            });
-          },
+          onTap: (index) => setState(() => _currentIndex = index),
           items: _items,
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
-          selectedItemColor: Theme.of(context).primaryColor,
-          unselectedItemColor: const Color(0xFF6B7280),
+          selectedItemColor: const Color(0xFF358373),
+          unselectedItemColor: const Color(0xFF94A3B8),
           selectedLabelStyle: const TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
           ),
-          unselectedLabelStyle: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.normal,
-          ),
+          unselectedLabelStyle: const TextStyle(fontSize: 12),
+          elevation: 0,
         ),
       ),
     );

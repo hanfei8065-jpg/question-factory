@@ -1,4 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:learnest_fresh/widgets/aitutor_sheet.dart';
+
+void _showAITutorSheet(BuildContext context, String question) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => AITutorSheet(
+      question: question,
+      onClose: () => Navigator.of(context).pop(),
+    ),
+  );
+}
 
 class AppQuestionArenaPage extends StatefulWidget {
   final String subject;
@@ -216,6 +229,28 @@ class _AppQuestionArenaPageState extends State<AppQuestionArenaPage> {
                   ),
                 ),
               ),
+            // Ask Tutor 按钮
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF358373),
+                    foregroundColor: Colors.white,
+                    shape: const StadiumBorder(),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    textStyle: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                  icon: const Icon(Icons.psychology),
+                  label: const Text('Ask Tutor'),
+                  onPressed: () => _showAITutorSheet(context, q['question']),
+                ),
+              ),
+            ),
           ],
         ),
       ),

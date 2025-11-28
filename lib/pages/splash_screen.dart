@@ -1,5 +1,6 @@
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
-import 'dart:async';
+import '../main.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -11,26 +12,24 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _fadeAnimation;
+  late Animation<double> _fadeAnim;
 
   @override
   void initState() {
     super.initState();
-
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 800),
       vsync: this,
+      duration: const Duration(milliseconds: 800),
     );
-
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-
+    _fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
     _controller.forward();
-
-    Timer(const Duration(seconds: 2), () {
-      Navigator.of(context).pushReplacementNamed('/camera');
+    Future.delayed(const Duration(seconds: 2), () async {
+      await _controller.reverse();
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const MainNavigator()),
+        );
+      }
     });
   }
 
@@ -43,63 +42,46 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE8E8E8),
-      body: SafeArea(
-        child: Center(
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 68.8,
-                      height: 68.8,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFFFFFFF),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.lightbulb,
-                          size: 36,
-                          color: Color(0xFF00A86B),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 20),
-                    const Text(
-                      'Learnest.AI',
-                      style: TextStyle(
-                        fontSize: 36,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.8,
-                        color: Color(0xFF00A86B),
-                      ),
+      backgroundColor: Colors.white,
+      body: Center(
+        child: FadeTransition(
+          opacity: _fadeAnim,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 8,
                     ),
                   ],
                 ),
-                const SizedBox(height: 120),
-                Container(
-                  width: 68.8,
-                  height: 68.8,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFE8E8E8),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: CircularProgressIndicator(
-                      strokeWidth: 4.0,
-                      color: Color(0xFF00A86B),
-                    ),
+                child: Center(
+                  child: Icon(
+                    Icons.code, // 可替换为自定义Logo Widget
+                    color: Color(0xFF358373),
+                    size: 40,
                   ),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 18),
+              const Text(
+                '来自未来的学习方式',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Color(0xFF1E293B),
+                  fontFamily: 'Songti', // 若无宋体可用默认字体
+                  fontWeight: FontWeight.w400,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ],
           ),
         ),
       ),

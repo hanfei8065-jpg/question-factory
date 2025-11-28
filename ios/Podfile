@@ -39,5 +39,17 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+    
+    target.build_configurations.each do |config|
+      # 1. 强制最低支持 iOS 13.0
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+      
+      # 2. 关键药方：关闭“把警告当成错误”
+      config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
+      
+      # 3. 针对 Google ML Kit 的特殊豁免（允许指针类型不匹配）
+      config.build_settings['WARNING_CFLAGS'] ||= ['$(inherited)']
+      config.build_settings['WARNING_CFLAGS'] << '-Wno-incompatible-pointer-types'
+    end
   end
 end

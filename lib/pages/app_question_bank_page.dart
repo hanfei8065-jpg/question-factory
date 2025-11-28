@@ -33,7 +33,7 @@ class _AppQuestionBankPageState extends State<AppQuestionBankPage> {
             children: [
               // Header
               Text(
-                'Knowledge Arena',
+                S.of(context).knowledgeArena,
                 style: const TextStyle(
                   color: Color(0xFF1E293B),
                   fontWeight: FontWeight.bold,
@@ -42,7 +42,7 @@ class _AppQuestionBankPageState extends State<AppQuestionBankPage> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Target your weakness',
+                S.of(context).targetWeakness,
                 style: const TextStyle(color: Color(0xFF64748B), fontSize: 16),
               ),
               const SizedBox(height: 20),
@@ -73,7 +73,7 @@ class _AppQuestionBankPageState extends State<AppQuestionBankPage> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Revenge Mode: 3 Missed Questions',
+                        S.of(context).revengeMode,
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w600,
