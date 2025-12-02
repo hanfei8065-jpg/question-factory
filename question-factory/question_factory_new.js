@@ -423,6 +423,11 @@ async function runOneTask() {
 // 5. 主执行入口 (并发版)
 // ==========================================
 async function mainBatch() {
+  // 🚦 STAGGER START: 随机延迟 0-60 秒，避免 20 个并发任务同时触发 API
+  const delayMs = Math.floor(Math.random() * 60000);
+  console.log(`🚦 Staggering start: Waiting for ${delayMs}ms (${(delayMs/1000).toFixed(1)}s) to avoid rate limits...`);
+  await new Promise(resolve => setTimeout(resolve, delayMs));
+  
   console.log(`🚀 [Factory] 启动并发任务 (并发数: ${CONCURRENCY_LIMIT})...`);
   
   // 1. 创建并发任务
@@ -445,7 +450,10 @@ async function mainBatch() {
     const inserted = await insertToSupabase(allQuestions);
     console.log(`✅ [Batch Complete] 成功入库: ${inserted}`);
   } else {
-    console.log(`⚠️ [Batch Complete] 本次未生成有效题目`);
+    // ❌ FAIL ON EMPTY: 如果没有生成任何题目，脚本必须以错误退出
+    console.error(`❌ [CRITICAL ERROR] 本次未生成任何有效题目 - API 可能被限流或出错！`);
+    console.error(`❌ GitHub Actions 将显示为失败状态 (RED CROSS ❌)`);
+    process.exit(1); // 退出码 1 = 失败
   }
 }
 
