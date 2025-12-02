@@ -76,15 +76,15 @@ class KnowledgeNetwork {
     Set<String> unvisited = {};
 
     // 初始化
-    points.keys.forEach((pointId) {
+    for (var pointId in points.keys) {
       distances[pointId] = double.infinity;
       unvisited.add(pointId);
-    });
+    }
     distances[startPoint] = 0;
 
     while (unvisited.isNotEmpty) {
       // 获取距离最小的节点
-      String? current = null;
+      String? current;
       double minDistance = double.infinity;
 
       for (var pointId in unvisited) {

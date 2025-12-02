@@ -111,7 +111,7 @@ class ModelManager {
     boxes.sort((a, b) => (b.width * b.height).compareTo(a.width * a.height));
 
     final selected = <Rect>[];
-    final suppressed = Set<int>();
+    final suppressed = <int>{};
 
     for (var i = 0; i < boxes.length; i++) {
       if (suppressed.contains(i)) continue;

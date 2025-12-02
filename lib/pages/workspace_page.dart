@@ -20,10 +20,10 @@ class WorkspacePage extends StatefulWidget {
 }
 
 class _WorkspacePageState extends State<WorkspacePage> {
-  List<List<Offset>> _lines = [];
-  List<List<Offset>> _undoneLines = [];
-  Color _currentColor = Colors.black;
-  double _currentWidth = 2.0;
+  final List<List<Offset>> _lines = [];
+  final List<List<Offset>> _undoneLines = [];
+  final Color _currentColor = Colors.black;
+  final double _currentWidth = 2.0;
   bool _showCalculator = false;
   final TextEditingController _answerController = TextEditingController();
 

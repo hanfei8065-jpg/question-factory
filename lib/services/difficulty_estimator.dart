@@ -18,9 +18,9 @@ class DifficultyEstimator {
     int score = 0;
 
     // 检查题目长度
-    if (question.content.length > 200)
+    if (question.content.length > 200) {
       score += 2;
-    else if (question.content.length > 100)
+    } else if (question.content.length > 100)
       score += 1;
 
     // 检查是否包含特定关键词

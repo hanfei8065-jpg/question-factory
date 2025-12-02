@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 import 'package:camera/camera.dart';
 import '../utils/image_quality_analyzer.dart';
 
@@ -14,7 +13,7 @@ class SmartCameraAssistant {
   bool _isStable = false;
   double _lastExposure = 0.0;
   int _stableFrameCount = 0;
-  List<double> _recentMotions = [];
+  final List<double> _recentMotions = [];
   CameraImage? _lastFrame;
 
   static const int _requiredStableFrames = 10;

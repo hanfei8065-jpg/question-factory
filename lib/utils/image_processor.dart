@@ -126,15 +126,15 @@ class ImageProcessor {
   }
 
   // 检测问题边界框
-  static Rectangle<int>? _detectQuestionBoundingBox(img.Image image) {
+  Rectangle<int>? detectQuestionBoundingBox(img.Image image) {
     // 转换为灰度图
     final grayImage = img.grayscale(image);
     
     // Sobel 边缘检测
-    final edges = _sobelEdgeDetection(grayImage);
+    final edges = sobelEdgeDetection(grayImage);
     
     // 霍夫变换检测直线
-    final lines = _houghLines(edges);
+    final lines = houghLines(edges);
     
     // 根据直线找到最可能的问题区域
     if (lines.isNotEmpty) {
@@ -164,7 +164,7 @@ class ImageProcessor {
   }
 
   // Sobel边缘检测
-  static img.Image _sobelEdgeDetection(img.Image grayscale) {
+  img.Image sobelEdgeDetection(img.Image grayscale) {
     final output = img.Image(grayscale.width, grayscale.height);
     const threshold = 30;
 
@@ -191,7 +191,7 @@ class ImageProcessor {
   }
 
   // 霍夫变换检测直线
-  static List<_Line> _houghLines(img.Image edges) {
+  List<_Line> houghLines(img.Image edges) {
     final rhoResolution = 1.0;
     final thetaResolution = pi / 180;
     final threshold = edges.width * 0.25; // 最小投票数阈值
@@ -250,7 +250,7 @@ class ImageProcessor {
   }
 
   // 按边界框裁剪图像
-  static img.Image _cropToRect(img.Image image, Rectangle<int> rect) {
+  img.Image cropToRect(img.Image image, Rectangle<int> rect) {
     return img.copyCrop(
       image,
       x: rect.left,
@@ -261,12 +261,12 @@ class ImageProcessor {
   }
 
   // 倾斜校正
-  static img.Image _correctSkew(img.Image image) {
+  img.Image correctSkew(img.Image image) {
     // 转换为灰度图
     final grayImage = img.grayscale(image);
     
     // 检测文本行
-    var angle = _detectSkewAngle(grayImage);
+    var angle = detectSkewAngle(grayImage);
     
     // 如果角度太大，可能是误检测
     if (angle.abs() > 30) {
@@ -278,7 +278,7 @@ class ImageProcessor {
   }
 
   // 检测倾斜角度
-  static double _detectSkewAngle(img.Image grayImage) {
+  double detectSkewAngle(img.Image grayImage) {
     // 使用投影剖面法检测文本行倾斜
     var bestAngle = 0.0;
     var maxVariance = 0.0;
@@ -286,8 +286,8 @@ class ImageProcessor {
     // 在一个合理的角度范围内搜索
     for (var angle = -30.0; angle <= 30.0; angle += 0.5) {
       final rotated = img.copyRotate(grayImage, angle: angle);
-      final projection = _getHorizontalProjection(rotated);
-      final variance = _calculateVariance(projection);
+      final projection = getHorizontalProjection(rotated);
+      final variance = calculateVariance(projection);
       
       if (variance > maxVariance) {
         maxVariance = variance;
@@ -299,7 +299,7 @@ class ImageProcessor {
   }
 
   // 计算水平投影
-  static List<int> _getHorizontalProjection(img.Image image) {
+  List<int> getHorizontalProjection(img.Image image) {
     final projection = List<int>.filled(image.height, 0);
     
     for (var y = 0; y < image.height; y++) {
@@ -314,14 +314,14 @@ class ImageProcessor {
   }
 
   // 计算方差
-  static double _calculateVariance(List<int> values) {
+  double calculateVariance(List<int> values) {
     final mean = values.reduce((a, b) => a + b) / values.length;
     final squaredDiffs = values.map((v) => pow(v - mean, 2));
     return squaredDiffs.reduce((a, b) => a + b) / values.length;
   }
 
   // 缩放图像
-  static img.Image _resizeImage(img.Image image) {
+  img.Image resizeImage(img.Image image) {
     final ratio = maxImageSize / max(image.width, image.height);
     return img.copyResize(
       image,
@@ -331,7 +331,7 @@ class ImageProcessor {
   }
 
   // 图像增强处理链
-  static img.Image _enhanceImage(img.Image image) {
+  img.Image enhanceImage(img.Image image) {
     // 降噪
     image = img.gaussianBlur(image, radius: 1);
     
@@ -371,7 +371,7 @@ class _Line {
     }
   }
 
-  static img.Image _resizeImage(img.Image image) {
+  img.Image _resizeImage(img.Image image) {
     final ratio = image.width / image.height;
 
     int newWidth, newHeight;

@@ -208,7 +208,7 @@ class _AdvancedCalculatorPageState extends State<AdvancedCalculatorPage> {
                         }).toList(),
                       ),
                     );
-                  }).toList(),
+                  }),
                 ],
               ),
             ),

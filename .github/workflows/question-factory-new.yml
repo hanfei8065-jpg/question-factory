@@ -1,27 +1,86 @@
-name: Auto Question Factory (New)
+name: Auto Question Factory (Matrix Mode - 20x Parallel)
 
 on:
   schedule:
-    # Run every 2 minutes (High Frequency Mode)
-    - cron: '*/2 * * * *'
+    # Run every 6 hours (4 times per day) - Reduced frequency due to 20x parallelism
+    # At 00:00, 06:00, 12:00, 18:00 UTC
+    - cron: '0 */6 * * *'
   workflow_dispatch:
+    inputs:
+      force-subject:
+        description: 'Force specific subject (optional: math, physics, chemistry, olympiad)'
+        required: false
+        type: string
 
 jobs:
-  trigger-factory:
+  # ==========================================
+  # 🚀 MATRIX STRATEGY: 20 Parallel Jobs
+  # ==========================================
+  # 4 subjects × 5 batches = 20 parallel executions
+  # Expected output: 20 jobs × 3 questions = 60 questions per run
+  # Daily output: 4 runs × 60 = 240 questions/day
+  # ==========================================
+  generate-questions-matrix:
     runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 20  # GitHub Free: 20 concurrent jobs, Pro: 60
+      fail-fast: false   # Continue other jobs even if one fails
+      matrix:
+        subject: [math, physics, chemistry, olympiad]
+        batch: [1, 2, 3, 4, 5]  # 5 batches per subject
+    
+    name: "${{ matrix.subject }}-batch-${{ matrix.batch }}"
+    
     steps:
-      - name: Call Supabase Edge Function
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Generate Questions (Matrix Job)
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          echo "Triggering New Question Factory..."
-          response=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST \
-            "${{ secrets.SUPABASE_URL }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_KEY }}" \
-            -H "Content-Type: application/json" \
-            -d '{}')
-          echo "Response: $response"
-          if [[ "$response" == *"HTTP_STATUS:200"* ]]; then
-            echo "✅ Success! Questions generated."
-          else
-            echo "❌ Failed! Check logs above."
-            exit 1
-          fi
+          echo "🚀 Starting Matrix Job: ${{ matrix.subject }} - Batch ${{ matrix.batch }}"
+          echo "=================================================="
+          echo "Subject: ${{ matrix.subject }}"
+          echo "Batch ID: ${{ matrix.batch }}"
+          echo "Total Matrix Jobs: 20 (4 subjects × 5 batches)"
+          echo "=================================================="
+          
+          # Run question factory
+          cd question-factory
+          node question_factory_new.js
+          
+          echo "✅ Matrix Job Completed: ${{ matrix.subject }}-batch-${{ matrix.batch }}"
+      
+      - name: Upload Artifacts (Optional)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: questions-${{ matrix.subject }}-batch-${{ matrix.batch }}
+          path: question-factory/logs/
+          retention-days: 7
+  
+  # ==========================================
+  # 📊 Summary Job (Runs after all matrix jobs)
+  # ==========================================
+  summarize-results:
+    runs-on: ubuntu-latest
+    needs: generate-questions-matrix
+    if: always()
+    
+    steps:
+      - name: Generate Summary
+        run: |
+          echo "🎉 Matrix Execution Complete!"
+          echo "========================================"
+          echo "Total Jobs: 20 (4 subjects × 5 batches)"
+          echo "Expected Questions: ~60 (20 jobs × 3)"
+          echo "========================================"
+          echo "Check Supabase for new questions!"

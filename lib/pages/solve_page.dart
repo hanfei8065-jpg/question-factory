@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class SolvePage extends StatelessWidget {
   final ImageProvider? questionImage;
-  const SolvePage({Key? key, this.questionImage}) : super(key: key);
+  const SolvePage({super.key, this.questionImage});
 
   @override
   Widget build(BuildContext context) {

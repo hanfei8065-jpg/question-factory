@@ -44,12 +44,17 @@ post_install do |installer|
       # 1. 强制最低支持 iOS 13.0
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
       
-      # 2. 关键药方：关闭“把警告当成错误”
+      # 2. 关闭所有“警告变错误”的开关
       config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
+      config.build_settings['SWIFT_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
       
-      # 3. 针对 Google ML Kit 的特殊豁免（允许指针类型不匹配）
+      # 3. 针对旧代码的免死金牌
+      config.build_settings['CLANG_WARN_STRICT_PROTOTYPES'] = 'NO'
+      
+      # 4. 核弹级：忽略所有 C 语言警告
       config.build_settings['WARNING_CFLAGS'] ||= ['$(inherited)']
       config.build_settings['WARNING_CFLAGS'] << '-Wno-incompatible-pointer-types'
+      config.build_settings['WARNING_CFLAGS'] << '-Wno-deprecated-declarations'
     end
   end
 end

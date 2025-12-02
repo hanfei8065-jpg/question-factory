@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/theme.dart';
+import '../widgets/braun_calculator.dart'; // 引入枚举 CalculatorVariant
+import 'calculator_page.dart'; // 引入刚才创建的全屏计算器
 
 /// 计算器选择页 - 4种高端仿真计算器
 class CalculatorSelectionPage extends StatelessWidget {
@@ -11,59 +13,49 @@ class CalculatorSelectionPage extends StatelessWidget {
       backgroundColor: AppTheme.backgroundGray,
       appBar: AppBar(
         title: const Text('选择计算器'),
-        backgroundColor: AppTheme.brandPrimary,
+        // 保持原来的品牌色，或者统一用 WeChat Green (0xFF07C160)
+        backgroundColor: const Color(0xFF07C160),
         foregroundColor: Colors.white,
         centerTitle: true,
+        elevation: 0,
       ),
       body: GridView.count(
         crossAxisCount: 2,
-        padding: EdgeInsets.all(AppTheme.spacing16),
-        mainAxisSpacing: AppTheme.spacing16,
-        crossAxisSpacing: AppTheme.spacing16,
+        padding: const EdgeInsets.all(16),
+        mainAxisSpacing: 16,
+        crossAxisSpacing: 16,
         children: [
           _buildCalculatorCard(
             context,
             title: '基础计算器',
             subtitle: '适合小学生',
             icon: Icons.calculate_outlined,
-            color: const Color(0xFF4CAF50),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const BasicCalculatorPage()),
-            ),
+            color: const Color(0xFF4CAF50), // Green
+            variant: CalculatorVariant.classic,
           ),
           _buildCalculatorCard(
             context,
             title: '科学计算器',
             subtitle: '适合初高中',
             icon: Icons.functions,
-            color: const Color(0xFF2196F3),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ScientificCalculatorPage()),
-            ),
+            color: const Color(0xFF2196F3), // Blue
+            variant: CalculatorVariant.dark, // 对应深色科学风格
           ),
           _buildCalculatorCard(
             context,
             title: '高级函数',
             subtitle: '适合大学',
             icon: Icons.auto_graph,
-            color: const Color(0xFFFF9800),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const AdvancedCalculatorPage()),
-            ),
+            color: const Color(0xFFFF9800), // Orange
+            variant: CalculatorVariant.blue, // 对应蓝色风格
           ),
           _buildCalculatorCard(
             context,
             title: '图形计算器',
             subtitle: '函数绘图',
             icon: Icons.show_chart,
-            color: const Color(0xFF9C27B0),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const GraphingCalculatorPage()),
-            ),
+            color: const Color(0xFF9C27B0), // Purple
+            variant: CalculatorVariant.gold, // 对应金色风格
           ),
         ],
       ),
@@ -76,17 +68,23 @@ class CalculatorSelectionPage extends StatelessWidget {
     required String subtitle,
     required IconData icon,
     required Color color,
-    required VoidCallback onTap,
+    required CalculatorVariant variant,
   }) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        // 跳转到全屏计算器页
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => CalculatorPage(variant: variant)),
+        );
+      },
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(AppTheme.radiusL),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withOpacity(0.05),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -104,128 +102,21 @@ class CalculatorSelectionPage extends StatelessWidget {
               ),
               child: Icon(icon, size: 32, color: color),
             ),
-            SizedBox(height: AppTheme.spacing12),
+            const SizedBox(height: 12),
             Text(
               title,
-              style: TextStyle(
-                fontSize: AppTheme.fontSizeL,
-                fontWeight: AppTheme.fontWeightBold,
-                color: AppTheme.textPrimary,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E293B),
               ),
             ),
-            SizedBox(height: AppTheme.spacing4),
+            const SizedBox(height: 4),
             Text(
               subtitle,
-              style: TextStyle(
-                fontSize: AppTheme.fontSizeS,
-                color: AppTheme.textSecondary,
-              ),
+              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-/// 基础计算器（占位）
-class BasicCalculatorPage extends StatelessWidget {
-  const BasicCalculatorPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('基础计算器'),
-        backgroundColor: const Color(0xFF4CAF50),
-        foregroundColor: Colors.white,
-      ),
-      body: Center(
-        child: Text(
-          '基础计算器\n开发中...',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: AppTheme.fontSizeXL,
-            color: AppTheme.textSecondary,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 科学计算器（占位）
-class ScientificCalculatorPage extends StatelessWidget {
-  const ScientificCalculatorPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('科学计算器'),
-        backgroundColor: const Color(0xFF2196F3),
-        foregroundColor: Colors.white,
-      ),
-      body: Center(
-        child: Text(
-          '科学计算器\n开发中...',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: AppTheme.fontSizeXL,
-            color: AppTheme.textSecondary,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 高级函数计算器（占位）
-class AdvancedCalculatorPage extends StatelessWidget {
-  const AdvancedCalculatorPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('高级函数计算器'),
-        backgroundColor: const Color(0xFFFF9800),
-        foregroundColor: Colors.white,
-      ),
-      body: Center(
-        child: Text(
-          '高级函数计算器\n开发中...',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: AppTheme.fontSizeXL,
-            color: AppTheme.textSecondary,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 图形计算器（占位）
-class GraphingCalculatorPage extends StatelessWidget {
-  const GraphingCalculatorPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('图形计算器'),
-        backgroundColor: const Color(0xFF9C27B0),
-        foregroundColor: Colors.white,
-      ),
-      body: Center(
-        child: Text(
-          '图形计算器\n开发中...',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: AppTheme.fontSizeXL,
-            color: AppTheme.textSecondary,
-          ),
         ),
       ),
     );

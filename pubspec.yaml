@@ -31,6 +31,7 @@ dependencies:
   hive: ^2.2.3
   crypto: ^3.0.3
   uuid: ^4.3.3
+  supabase_flutter: ^2.8.0  # ✅ Supabase 集成
   
   # AI & ML
   google_ml_kit: ^0.16.3
@@ -51,9 +52,12 @@ dependencies:
   
   # Utils
   permission_handler: ^12.0.1
-  app_settings: ^5.1.1
+  app_settings: 5.1.0
   share_plus: ^7.2.1
   device_info_plus: ^10.1.0
+  screenshot: ^3.0.0  # ✅ Widget → Image 海报生成
+
+  # 注意：我删除了底下那一堆 'any' 的垃圾依赖，它们是报错的根源。
 
 dev_dependencies:
   flutter_test:
@@ -67,13 +71,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  generate: true # 这个必须保留！
+  generate: true
   assets:
     - .env
     - assets/images/
+    - assets/images/robot/
     - assets/test_images/
-
-# --- 注意：我删除了 flutter_gen 部分 ---
-# 让 Flutter 使用默认的标准生成逻辑。
-# 它会自动读取 lib/l10n/app_en.arb (因为我们把 template-arb-file 删了，它会找默认的)
-# 只要你的文件名是 app_en.arb 就没问题。

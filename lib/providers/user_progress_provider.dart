@@ -4,7 +4,7 @@ import '../services/database_service.dart';
 
 class UserProgressProvider with ChangeNotifier {
   UserProgress? _progress;
-  String _userId = 'default_user'; // 简化处理，使用固定用户ID
+  final String _userId = 'default_user'; // 简化处理，使用固定用户ID
 
   UserProgress? get progress => _progress;
 

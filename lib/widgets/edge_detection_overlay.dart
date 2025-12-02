@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:ui' as ui;
 
 class EdgeDetectionOverlay extends StatelessWidget {
   final List<Offset> corners;

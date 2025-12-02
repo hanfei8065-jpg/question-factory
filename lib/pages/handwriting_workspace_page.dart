@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:ui' as ui;
 
 class HandwritingWorkspacePage extends StatefulWidget {
   const HandwritingWorkspacePage({super.key});
@@ -10,8 +9,8 @@ class HandwritingWorkspacePage extends StatefulWidget {
 }
 
 class _HandwritingWorkspacePageState extends State<HandwritingWorkspacePage> {
-  List<List<Offset>> _strokes = [];
-  List<List<Offset>> _redoStrokes = [];
+  final List<List<Offset>> _strokes = [];
+  final List<List<Offset>> _redoStrokes = [];
   bool _showGrid = true;
   double _gridSize = 30.0;
   Color _currentColor = Colors.black;

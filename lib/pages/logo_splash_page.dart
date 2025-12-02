@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class LogoSplashPage extends StatelessWidget {
   final VoidCallback? onClose;
-  const LogoSplashPage({Key? key, this.onClose}) : super(key: key);
+  const LogoSplashPage({super.key, this.onClose});
 
   @override
   Widget build(BuildContext context) {

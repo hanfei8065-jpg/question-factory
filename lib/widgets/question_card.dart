@@ -62,7 +62,7 @@ class _QuestionCardState extends State<QuestionCard> {
                       ? (isCorrect ? AppTheme.success : AppTheme.error)
                       : null,
                 );
-              }).toList(),
+              }),
             ],
             if (widget.question.type == QuestionType.fill)
               TextField(

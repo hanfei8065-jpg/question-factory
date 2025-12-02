@@ -7,11 +7,11 @@ class AdjustableQuestionBox extends StatefulWidget {
   final Function(Rect) onRectChanged;
 
   const AdjustableQuestionBox({
-    Key? key,
+    super.key,
     required this.initialRect,
     required this.image,
     required this.onRectChanged,
-  }) : super(key: key);
+  });
 
   @override
   State<AdjustableQuestionBox> createState() => _AdjustableQuestionBoxState();
@@ -223,11 +223,10 @@ class _DragHandleWidget extends StatelessWidget {
   final VoidCallback onDragEnd;
 
   const _DragHandleWidget({
-    Key? key,
     required this.onDragStart,
     required this.onDragUpdate,
     required this.onDragEnd,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

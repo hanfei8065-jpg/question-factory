@@ -1,13 +1,47 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'pages/splash_screen.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'theme/app_theme.dart';
 import 'pages/app_question_bank_page.dart';
 import 'pages/app_camera_page.dart';
 import 'pages/app_profile_page.dart';
+import 'services/user_progress_service.dart';
+import 'services/translation_service.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // ✅ 1. Load .env file
+  try {
+    await dotenv.load(fileName: '.env');
+    print('✅ .env loaded successfully');
+  } catch (e) {
+    print('⚠️ Failed to load .env: $e');
+  }
+
+  // ✅ 2. Initialize Supabase
+  final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
+  final supabaseKey = dotenv.env['SUPABASE_SERVICE_ROLE_KEY'] ?? '';
+
+  if (supabaseUrl.isNotEmpty && supabaseKey.isNotEmpty) {
+    try {
+      await Supabase.initialize(
+        url: supabaseUrl,
+        anonKey: supabaseKey,
+        debug: true, // 开发模式下显示日志
+      );
+      print('✅ Supabase initialized: $supabaseUrl');
+    } catch (e) {
+      print('❌ Failed to initialize Supabase: $e');
+    }
+  } else {
+    print('⚠️ SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not found in .env');
+  }
+
+  // 3. Initialize UserProgressService
+  await UserProgressService().init();
+
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
@@ -15,48 +49,28 @@ void main() {
   runApp(const LearnistApp());
 }
 
-class LearnistApp extends StatefulWidget {
+class LearnistApp extends StatelessWidget {
   const LearnistApp({super.key});
 
   @override
-  State<LearnistApp> createState() => _LearnistAppState();
-}
-
-class _LearnistAppState extends State<LearnistApp> {
-  Locale _locale = const Locale('zh'); // 默认中文
-
-  void _changeLocale(Locale locale) {
-    setState(() {
-      _locale = locale;
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Learnist.AI',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        scaffoldBackgroundColor: const Color(0xFFF5F7FA),
-        primaryColor: const Color(0xFF358373),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF358373),
-          primary: const Color(0xFF358373),
-          secondary: const Color(0xFF5FCEB3),
-        ),
-        useMaterial3: true,
-        fontFamily: 'Inter',
-      ),
-      locale: _locale,
-  // 本地化相关配置已移除，直接硬编码中文
-      home: const SplashScreen(),
+    // Wrap with ValueListenableBuilder for instant language switching
+    return ValueListenableBuilder<String>(
+      valueListenable: Tr.currentLocale,
+      builder: (context, locale, child) {
+        return MaterialApp(
+          title: 'Learnist.AI',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.theme, // Using AppTheme with WeChat color standards
+          home: const MainNavigator(),
+        );
+      },
     );
   }
 }
 
 class MainNavigator extends StatefulWidget {
-  final void Function(Locale)? onLocaleChange;
-  const MainNavigator({super.key, this.onLocaleChange});
+  const MainNavigator({super.key});
 
   @override
   State<MainNavigator> createState() => _MainNavigatorState();
@@ -64,15 +78,6 @@ class MainNavigator extends StatefulWidget {
 
 class _MainNavigatorState extends State<MainNavigator> {
   int _currentIndex = 0;
-
-  final List<Locale> _locales = const [
-    Locale('zh'),
-    Locale('en'),
-    Locale('ja'),
-    Locale('es'),
-  ];
-
-  final List<String> _localeNames = const ['中文', 'English', '日本語', 'Español'];
 
   final List<Widget> _pages = [
     const AppCameraPage(),
@@ -82,66 +87,48 @@ class _MainNavigatorState extends State<MainNavigator> {
 
   @override
   Widget build(BuildContext context) {
-    final List<BottomNavigationBarItem> _items = [
-      BottomNavigationBarItem(
-        icon: const Icon(Icons.camera_alt_rounded, size: 32),
-        label: '拍题',
-      ),
-      BottomNavigationBarItem(
-        icon: const Icon(Icons.menu_book_rounded),
-        label: '题库',
-      ),
-      BottomNavigationBarItem(
-        icon: const Icon(Icons.person_rounded),
-        label: '我的',
-      ),
-    ];
-
     return Scaffold(
-      appBar: AppBar(
+      backgroundColor: Colors.white,
+      body: IndexedStack(index: _currentIndex, children: _pages),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (index) => setState(() => _currentIndex = index),
+        type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.white,
-        elevation: 0,
-        title: Text('题库', style: const TextStyle(color: Color(0xFF358373))),
-        actions: [
-          PopupMenuButton<int>(
-            icon: const Icon(Icons.language, color: Color(0xFF358373)),
-            onSelected: (idx) {
-              widget.onLocaleChange?.call(_locales[idx]);
-            },
-            itemBuilder: (context) => List.generate(
-              _locales.length,
-              (idx) =>
-                  PopupMenuItem(value: idx, child: Text(_localeNames[idx])),
+        selectedItemColor: const Color(0xFF07C160),
+        unselectedItemColor: const Color(0xFF191919),
+        selectedLabelStyle: const TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w500,
+        ),
+        unselectedLabelStyle: const TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.normal,
+        ),
+        elevation: 8,
+        items: [
+          BottomNavigationBarItem(
+            icon: Icon(
+              _currentIndex == 0 ? Icons.camera_alt : Icons.camera_alt_outlined,
+              size: 26,
             ),
+            label: Tr.g('nav_scan'),
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(
+              _currentIndex == 1 ? Icons.menu_book : Icons.menu_book_outlined,
+              size: 26,
+            ),
+            label: Tr.g('nav_arena'),
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(
+              _currentIndex == 2 ? Icons.person : Icons.person_outline,
+              size: 26,
+            ),
+            label: Tr.g('nav_profile'),
           ),
         ],
-      ),
-      body: IndexedStack(index: _currentIndex, children: _pages),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (index) => setState(() => _currentIndex = index),
-          items: _items,
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.white,
-          selectedItemColor: const Color(0xFF358373),
-          unselectedItemColor: const Color(0xFF94A3B8),
-          selectedLabelStyle: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
-          unselectedLabelStyle: const TextStyle(fontSize: 12),
-          elevation: 0,
-        ),
       ),
     );
   }

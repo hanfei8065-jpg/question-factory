@@ -15,7 +15,7 @@ void _showAITutorSheet(BuildContext context) {
 
 class AppSolvingPage extends StatefulWidget {
   final String? imagePath;
-  const AppSolvingPage({Key? key, this.imagePath}) : super(key: key);
+  const AppSolvingPage({super.key, this.imagePath});
 
   @override
   State<AppSolvingPage> createState() => _AppSolvingPageState();
@@ -24,7 +24,7 @@ class AppSolvingPage extends StatefulWidget {
 class _AppSolvingPageState extends State<AppSolvingPage> {
   final TextEditingController _controller = TextEditingController();
   bool _showCalculator = false;
-  bool _showPeekWarning = false;
+  final bool _showPeekWarning = false;
   bool _showBingo = false;
 
   // Demo数据
@@ -229,7 +229,7 @@ class _AppSolvingPageState extends State<AppSolvingPage> {
                           ),
                       ],
                     );
-                  }).toList(),
+                  }),
                   const SizedBox(height: 32),
                   // Ask Tutor 按钮
                   SizedBox(

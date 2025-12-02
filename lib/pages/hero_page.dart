@@ -3,7 +3,7 @@ import 'camera_page.dart';
 import 'solve_page.dart';
 
 class HeroPage extends StatefulWidget {
-  const HeroPage({Key? key}) : super(key: key);
+  const HeroPage({super.key});
 
   @override
   State<HeroPage> createState() => _HeroPageState();

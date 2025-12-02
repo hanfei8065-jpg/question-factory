@@ -131,7 +131,7 @@ class UserProgress {
     Map<String, List<DateTime>>? practiceHistory,
   }) {
     return UserProgress(
-      userId: this.userId,
+      userId: userId,
       currentLevelId: currentLevelId ?? this.currentLevelId,
       goldCoin: goldCoin ?? this.goldCoin,
       exp: exp ?? this.exp,

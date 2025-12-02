@@ -191,9 +191,9 @@ class MultiQuestionProcessor {
     var score = 0;
 
     // 1. 基于题干长度
-    if (components.stem.length > 200)
+    if (components.stem.length > 200) {
       score += 2;
-    else if (components.stem.length > 100)
+    } else if (components.stem.length > 100)
       score += 1;
 
     // 2. 基于题目类型

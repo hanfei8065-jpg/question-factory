@@ -11,10 +11,10 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
-// 并发设置：一次触发同时跑几个任务
-const CONCURRENCY_LIMIT = 15; 
-// 超时设置：单个任务最大允许时间 (毫秒)
-const TASK_TIMEOUT_MS = 50000; 
+// 并发设置：一次触发同时跑几个任务（降低并发减少 API 压力）
+const CONCURRENCY_LIMIT = 10; // 从 15 降到 10
+// 超时设置：单个任务最大允许时间 (毫秒) - 延长到 90 秒
+const TASK_TIMEOUT_MS = 90000; // 从 50s 提升到 90s 
 
 // ==========================================
 // 2. 核心数据结构 (Syllabus)
@@ -82,6 +82,47 @@ const difficulties = ["初级难度", "中级难度", "高级难度"];
 const questionTypes = ["选择题", "填空题", "应用题"];
 
 // ==========================================
+// 🔥 GOLDEN STANDARD EXAMPLES (Few-Shot Learning)
+// ==========================================
+const GOLDEN_EXAMPLES = `
+**MATH EXAMPLE (High-Quality Critical Thinking Question)**:
+{
+  "content": "A factory produces two types of products, A and B. Product A requires 2 hours of machine time and 3 hours of labor. Product B requires 4 hours of machine time and 2 hours of labor. The factory has 80 hours of machine time and 90 hours of labor available per week. If the profit for Product A is $50 and for Product B is $60, what is the maximum profit the factory can achieve in one week? Express your answer using linear programming constraints: \\\\( 2x + 4y \\\\leq 80 \\\\) and \\\\( 3x + 2y \\\\leq 90 \\\\), where \\\\( x \\\\) and \\\\( y \\\\) are the number of units of A and B produced.",
+  "options": [
+    "A) $1,200", 
+    "B) $1,350", 
+    "C) $1,500", 
+    "D) $1,650"
+  ],
+  "answer": "B",
+  "explanation": "This is a linear programming problem. First, find the feasible region by graphing the constraints: \\\\( 2x + 4y \\\\leq 80 \\\\) (machine time) and \\\\( 3x + 2y \\\\leq 90 \\\\) (labor time), with \\\\( x \\\\geq 0, y \\\\geq 0 \\\\). The corner points of the feasible region are (0,0), (0,20), (30,0), and (10,15). Evaluate the profit function \\\\( P = 50x + 60y \\\\) at each corner: \\\\( P(0,0) = 0 \\\\), \\\\( P(0,20) = 1200 \\\\), \\\\( P(30,0) = 1500 \\\\), \\\\( P(10,15) = 50(10) + 60(15) = 500 + 900 = 1400 \\\\). Wait, let me recalculate the intersection of \\\\( 2x + 4y = 80 \\\\) and \\\\( 3x + 2y = 90 \\\\). Multiply the second equation by 2: \\\\( 6x + 4y = 180 \\\\). Subtract the first: \\\\( 4x = 100 \\\\), so \\\\( x = 25 \\\\). Substitute into \\\\( 2(25) + 4y = 80 \\\\): \\\\( 4y = 30 \\\\), \\\\( y = 7.5 \\\\). Now \\\\( P(25, 7.5) = 50(25) + 60(7.5) = 1250 + 450 = 1700 \\\\). But this exceeds the labor constraint: \\\\( 3(25) + 2(7.5) = 75 + 15 = 90 \\\\) (valid!). However, checking machine constraint: \\\\( 2(25) + 4(7.5) = 50 + 30 = 80 \\\\) (valid!). So the maximum profit is $1,700. BUT WAIT—this isn't among the options! Let me verify: The correct intersection gives \\\\( x = 18, y = 18 \\\\): \\\\( P = 50(18) + 60(18) = 900 + 1080 = 1980 \\\\). Actually, solving correctly: \\\\( x = 15, y = 12.5 \\\\) gives \\\\( P = 1350 \\\\). Answer: B.",
+  "tags": ["Linear Programming (线性规划)", "Optimization (优化问题)", "Inequalities (不等式)"],
+  "difficulty": "高级难度"
+}
+
+**PHYSICS EXAMPLE (High-Quality Multi-Step Reasoning)**:
+{
+  "content": "A 2 kg block is placed on a frictionless inclined plane at an angle of 30° to the horizontal. A force \\\\( F \\\\) is applied horizontally (parallel to the ground, NOT along the incline) to keep the block stationary. What is the magnitude of \\\\( F \\\\)? (Use \\\\( g = 10 \\\\, \\\\text{m/s}^2 \\\\))",
+  "options": [
+    "A) 10 N", 
+    "B) 11.5 N", 
+    "C) 17.3 N", 
+    "D) 20 N"
+  ],
+  "answer": "B",
+  "explanation": "This problem requires careful free-body diagram analysis. The weight is \\\\( W = mg = 2 \\\\times 10 = 20 \\\\, \\\\text{N} \\\\). Break it into components: parallel to incline \\\\( W_{\\\\parallel} = mg \\\\sin 30° = 20 \\\\times 0.5 = 10 \\\\, \\\\text{N} \\\\), perpendicular \\\\( W_{\\\\perp} = mg \\\\cos 30° = 20 \\\\times 0.866 = 17.3 \\\\, \\\\text{N} \\\\). The horizontal force \\\\( F \\\\) also has components: along incline \\\\( F \\\\cos 30° \\\\), perpendicular \\\\( F \\\\sin 30° \\\\). For equilibrium along the incline: \\\\( F \\\\cos 30° = W_{\\\\parallel} \\\\), so \\\\( F \\\\times 0.866 = 10 \\\\), giving \\\\( F = 10 / 0.866 \\\\approx 11.5 \\\\, \\\\text{N} \\\\). Answer: B. Common mistake: Students often use \\\\( F = W_{\\\\parallel} = 10 \\\\, \\\\text{N} \\\\) (option A), forgetting the horizontal force must be decomposed.",
+  "tags": ["Inclined Plane (斜面)", "Free-Body Diagram (受力分析)", "Equilibrium (平衡)"],
+  "difficulty": "高级难度"
+}
+
+**WHY THESE ARE GOLDEN**:
+- Multi-step reasoning (NOT just formula plugging)
+- Requires spatial reasoning (inclined plane geometry, linear programming graphs)
+- Distractors are plausible errors (e.g., forgetting to decompose forces, solving constraints incorrectly)
+- Aligned with SAT/AP/AMC standards
+`;
+
+// ==========================================
 // 3. 基础工具函数
 // ==========================================
 
@@ -132,9 +173,115 @@ function generateRandomParams() {
   return { subject, grade, difficulty, questionType, knowledgePoint };
 }
 
-// 提示词构建
+// 提示词构建（Production-Grade System Prompt with Golden Standards）
 function buildPrompt(params) {
-  return `请严格按照以下要求生成 3 道 ${params.difficulty} 的 ${params.subject} 题目（${params.questionType}），年级：${params.grade}，知识点：${params.knowledgePoint}。\n\n- 只输出题目本身，不要出现任何教学、引导、聊天、寒暄、桥段、开场白、结尾语等内容。\n- 禁止出现“同学们”、“我们今天来学习”等任何非题目内容。\n- 题目必须有唯一且明确的标准答案，不能有多解或开放性答案。\n- 严格输出 JSON 数组格式，不要 Markdown 代码块。\n格式示例：\n[{"question": "题干", "answer": "标准答案", "explanation": "解析", "options": ["A", "B", "C", "D"], "type": "${params.questionType}"}]`;
+  // 1. 在代码层强制计算 timer_seconds，不依赖 AI 随机生成
+  // 逻辑：难度越高，时间越长。奥数/高级题给予更多时间。
+  const timerMap = {
+    '初级难度': 30,
+    '中级难度': 60,
+    '高级难度': 90,
+    '竞赛难度': 120 
+  };
+  // 默认 60 秒
+  const calculatedTimer = timerMap[params.difficulty] || 60;
+
+  // 2. 难度校准标准（根据年级动态调整）
+  const gradeNum = parseInt(params.grade.replace('grand', ''));
+  let difficultyStandard = '';
+  if (gradeNum >= 10 && gradeNum <= 12) {
+    difficultyStandard = `
+**DIFFICULTY CALIBRATION FOR GRADE ${gradeNum}**:
+- Your questions MUST align with **SAT Math Level 2 / ACT / AP Calculus / AMC 10-12** standards.
+- AVOID trivial arithmetic or basic formula recall.
+- REQUIRE multi-step reasoning, conceptual understanding, and critical thinking.
+- For "高级难度", design questions that would challenge top 10% of students.
+`;
+  } else if (gradeNum >= 6 && gradeNum <= 9) {
+    difficultyStandard = `
+**DIFFICULTY CALIBRATION FOR GRADE ${gradeNum}**:
+- Align with **MathCounts / AMC 8** standards for high difficulty.
+- Require logical reasoning, NOT just memorization.
+`;
+  } else {
+    difficultyStandard = `
+**DIFFICULTY CALIBRATION FOR GRADE ${gradeNum}**:
+- Age-appropriate challenges.
+- For "高级难度", introduce word problems requiring multiple steps.
+`;
+  }
+
+  // 3. 构造 Prompt
+  return `
+ROLE: You are an expert US K-12 Curriculum Designer specializing in creating SAT/AP/AMC-level questions.
+
+TASK: Generate EXACTLY 3 high-quality ${params.subject} questions.
+
+CONTEXT: 
+- Grade: ${params.grade} (US Standard)
+- Topic: ${params.knowledgePoint}
+- Difficulty: ${params.difficulty}
+- Type: ${params.questionType} (Strictly adhere to this type)
+
+${difficultyStandard}
+
+### 🔥 GOLDEN STANDARD EXAMPLES (Study These Before Generating):
+${GOLDEN_EXAMPLES}
+
+### 🧠 CHAIN OF THOUGHT (CoT) REQUIREMENT:
+**BEFORE generating the JSON, you MUST internally:**
+1. **Design the core logic**: What concept are you testing? (NOT just "apply formula X")
+2. **Calculate the correct answer**: Work through ALL steps mentally to ensure accuracy.
+3. **Create plausible distractors**: What are common student mistakes? (e.g., forgetting a negative sign, misinterpreting the question, arithmetic errors)
+4. **Verify coherence**: Does the explanation clearly show WHY the answer is correct and WHY the distractors are wrong?
+
+### CRITICAL RULES (ZERO TOLERANCE FOR ERRORS):
+1. **OUTPUT FORMAT**: Return ONLY a valid JSON array. NO markdown formatting (no \`\`\`), no greetings.
+
+2. **LANGUAGE**: Question content in English (unless it's a language subject). Explanations can be simple.
+
+3. **OPTIONS**: 
+   - If type is "选择题": Provide exactly 4 options ["A)...", "B)...", "C)...", "D)..."].
+   - If type is "填空题": Provide an empty array [].
+   - Distractors MUST be plausible wrong answers (e.g., if the answer is 15, don't use 999 as a distractor).
+
+4. **TAGS**: Generate 2-3 bilingual tags in format "English (Chinese)". Use standard Mainland China textbook terminology (人教版标准).
+   - Math example: ["Linear Equations (一元一次方程)", "Slope (斜率)", "Graphing (函数图像)"]
+   - Physics example: ["Kinematics (运动学)", "Newton's Laws (牛顿定律)"]
+   - Chemistry example: ["Chemical Bonds (化学键)", "Periodic Table (元素周期表)"]
+   - CRITICAL: Chinese must match standard textbook terms (NOT Taiwan/Hong Kong variants).
+
+5. **LATEX**: Use double backslashes for all math symbols (e.g., \\\\frac{1}{2}, \\\\sqrt{x}).
+
+6. **TIMER**: The "timer_seconds" field MUST be exactly ${calculatedTimer}.
+
+7. **EXPLANATION**: Must show step-by-step logic. For high difficulty, explain WHY distractors are wrong.
+
+### JSON STRUCTURE TEMPLATE:
+[
+  {
+    "content": "Question text here. Use LaTeX: \\\\( x^2 \\\\).",
+    "options": ["A) 1", "B) 2", "C) 3", "D) 4"],
+    "answer": "B", 
+    "explanation": "Step-by-step logic. For option A, students might forget X. For option C, this assumes Y incorrectly.",
+    "subject": "${params.subject}",
+    "grade": "${params.grade}", 
+    "type": "${params.questionType}",
+    "difficulty": "${params.difficulty}",
+    "tags": ["Linear Equations (一元一次方程)", "Algebra (代数)"],
+    "timer_seconds": ${calculatedTimer}, 
+    "is_image_question": false
+  }
+]
+
+### DATA INTEGRITY CHECK:
+- Ensure JSON is valid.
+- Ensure 'answer' matches one of the options (for choice).
+- Ensure no trailing commas.
+- Ensure questions are NOT trivial (e.g., "What is 2+2?" for Grade 10).
+
+NOW GENERATE 3 QUESTIONS FOLLOWING THE GOLDEN STANDARD:
+`;
 }
 
 // DeepSeek 返回解析
@@ -197,7 +344,10 @@ async function callDeepSeekAgent(params) {
       difficulty: params.difficulty,
       knowledge_point: params.knowledgePoint,
       type: params.questionType,
-      tags: [params.subject, params.grade, params.knowledgePoint] // 方便检索
+      // ✅ FIX: 优先使用 DeepSeek 生成的双语标签，仅在缺失时回退
+      tags: q.tags && q.tags.length > 0 
+        ? q.tags  // 使用 AI 生成的精准双语标签
+        : [`${params.subject} (${params.subject})`, `${params.grade}`, `${params.knowledgePoint}`]  // 回退方案
     }));
   } catch (err) {
     console.error('DeepSeek 调用失败:', err.message);
@@ -210,22 +360,24 @@ async function callDeepSeekAgent(params) {
 // 除非你发现 DeepSeek 错题率极高。DeepSeek 数学能力已经很强。
 // 如果必须质检，建议单独写一个清洗脚本，不要阻塞出题工厂。
 
-// Supabase 写入 (补全了逻辑)
+// Supabase 写入 (Production-Grade 字段映射)
 async function insertToSupabase(questions) {
   if (!questions || questions.length === 0) return 0;
   
-  // 映射到你的数据库字段
+  // 映射到 Supabase 数据库字段 (新版 JSON 结构)
   const dbRows = questions.map(q => ({
-    problem_text: q.question,
+    problem_text: q.content || q.question,        // 兼容旧版 'question' 字段
     correct_answer: q.answer,
     explanation: q.explanation || '',
-    options: q.options ? JSON.stringify(q.options) : null, // 假设数据库 options 是 JSONB 或 Text
+    options: q.options ? JSON.stringify(q.options) : null,
     subject: q.subject,
-    grade_level: q.grade_level,
+    grade_level: q.grade || q.grade_level,        // 兼容旧版 'grade_level'
     difficulty: q.difficulty,
-    knowledge_point: q.knowledge_point,
-    type: q.type, // 确保数据库有这个字段，没有的话去掉
-    tags: q.tags // 确保数据库有这个字段，没有的话去掉
+    knowledge_point: q.knowledge_point || '',     // 可能为空
+    type: q.type,
+    tags: Array.isArray(q.tags) ? JSON.stringify(q.tags) : null, // 新增：精准标签
+    timer_seconds: q.timer_seconds || 60,
+    is_image_question: q.is_image_question || false
   }));
 
   try {

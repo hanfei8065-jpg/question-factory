@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import '../services/image_processing_service.dart';
@@ -208,7 +207,7 @@ class OpenAIService {
   Future<Map<String, String>> getSolutionProcess(File imageFile) async {
     try {
       final base64Image = await _imageProcessor.convertToBase64(imageFile);
-      
+
       final response = await http.post(
         Uri.parse('$_baseUrl/v1/chat/completions'),
         headers: {
@@ -235,16 +234,14 @@ class OpenAIService {
 {
   "process": "详细的解题过程",
   "answer": "最终答案"
-}'''
+}''',
                 },
                 {
                   'type': 'image_url',
-                  'image_url': {
-                    'url': 'data:image/jpeg;base64,$base64Image',
-                  }
-                }
-              ]
-            }
+                  'image_url': {'url': 'data:image/jpeg;base64,$base64Image'},
+                },
+              ],
+            },
           ],
           'max_tokens': 2000,
         }),
@@ -253,7 +250,7 @@ class OpenAIService {
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes));
         final content = data['choices'][0]['message']['content'] as String;
-        
+
         // 解析JSON响应
         final jsonMatch = RegExp(r'\{[\s\S]*\}').firstMatch(content);
         if (jsonMatch != null) {
@@ -263,16 +260,114 @@ class OpenAIService {
             'answer': resultJson['answer'] as String,
           };
         }
-        
+
         // 如果无法解析JSON，返回原始内容
-        return {
-          'process': content,
-          'answer': '请查看解题过程',
-        };
+        return {'process': content, 'answer': '请查看解题过程'};
       } else {
         throw Exception('API返回错误: ${response.statusCode}');
       }
     } catch (e) {
+      throw _formatError(e);
+    }
+  }
+
+  /// ✅✅ 生成验证性问题（用于AI辅导）
+  /// 基于用户答错的题目，生成一个类似的新问题来验证理解
+  Future<Map<String, dynamic>> generateVerificationQuestion(
+    Map<String, dynamic> originalQuestion,
+  ) async {
+    try {
+      final questionContent = originalQuestion['question'] ?? '';
+      final options = originalQuestion['options'] as List?;
+      final correctAnswer = originalQuestion['answer'];
+
+      final response = await http.post(
+        Uri.parse('$_baseUrl/v1/chat/completions'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_apiKey',
+        },
+        body: jsonEncode({
+          'model': 'gpt-4o',
+          'messages': [
+            {
+              'role': 'system',
+              'content': '''你是一位耐心的AI导师。学生刚刚答错了一道题目，你需要：
+1. 简短分析为什么学生可能答错（常见误区）
+2. 解释这道题的核心概念（2-3句话）
+3. 生成一道**类似但不完全相同**的新题目来验证学生是否真正理解
+
+要求：
+- 新题目应该考察相同的核心概念
+- 难度保持一致或稍简单
+- 必须是4选项的选择题
+- 答案选项顺序要打乱（不要总是A）
+
+返回严格的JSON格式（不要有额外的markdown标记）：
+{
+  "explanation": "为什么答错了 + 核心概念解释（简短、鼓励性）",
+  "new_question": "新题目内容",
+  "options": ["选项A", "选项B", "选项C", "选项D"],
+  "correct_answer": 0或1或2或3（正确选项的索引）
+}''',
+            },
+            {
+              'role': 'user',
+              'content':
+                  '''原题目：$questionContent
+
+选项：${options?.join(', ')}
+正确答案索引：$correctAnswer
+
+请生成验证性问题。''',
+            },
+          ],
+          'max_tokens': 1500,
+          'temperature': 0.7,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        final content = data['choices'][0]['message']['content'] as String;
+
+        print('🤖 AI Response: $content');
+
+        // 提取JSON（处理可能的markdown代码块）
+        String jsonStr = content;
+        if (content.contains('```json')) {
+          final start = content.indexOf('```json') + 7;
+          final end = content.lastIndexOf('```');
+          jsonStr = content.substring(start, end).trim();
+        } else if (content.contains('```')) {
+          final start = content.indexOf('```') + 3;
+          final end = content.lastIndexOf('```');
+          jsonStr = content.substring(start, end).trim();
+        } else {
+          // 尝试找到第一个 { 到最后一个 }
+          final startIndex = content.indexOf('{');
+          final endIndex = content.lastIndexOf('}') + 1;
+          if (startIndex != -1 && endIndex > startIndex) {
+            jsonStr = content.substring(startIndex, endIndex);
+          }
+        }
+
+        final result = jsonDecode(jsonStr) as Map<String, dynamic>;
+
+        // 验证返回数据完整性
+        if (!result.containsKey('explanation') ||
+            !result.containsKey('new_question') ||
+            !result.containsKey('options') ||
+            !result.containsKey('correct_answer')) {
+          throw Exception('AI返回数据不完整');
+        }
+
+        return result;
+      } else {
+        throw Exception('API返回错误: ${response.statusCode}\n${response.body}');
+      }
+    } catch (e) {
+      print('❌ generateVerificationQuestion Error: $e');
       throw _formatError(e);
     }
   }

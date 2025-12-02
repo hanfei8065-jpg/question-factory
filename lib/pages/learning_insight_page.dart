@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/user_progress.dart';
 import '../models/question.dart';
-import '../theme/app_theme.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 class LearningInsightPage extends StatefulWidget {
@@ -21,7 +20,7 @@ class LearningInsightPage extends StatefulWidget {
 class _LearningInsightPageState extends State<LearningInsightPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  int _selectedIndex = 0;
+  final int _selectedIndex = 0;
 
   @override
   void initState() {

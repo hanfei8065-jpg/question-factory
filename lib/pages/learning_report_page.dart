@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../services/progress_tracker.dart';
-import '../theme/theme.dart';
 
 class LearningReportPage extends StatefulWidget {
   const LearningReportPage({super.key});

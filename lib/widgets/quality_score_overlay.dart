@@ -7,11 +7,11 @@ class QualityScoreOverlay extends StatelessWidget {
   final VoidCallback onToggle;
 
   const QualityScoreOverlay({
-    Key? key,
+    super.key,
     required this.score,
     required this.isExpanded,
     required this.onToggle,
-  }) : super(key: key);
+  });
 
   Color _getScoreColor(int score) {
     if (score >= 80) return Colors.green;

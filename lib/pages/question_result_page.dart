@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
 import '../services/mistake_book_service.dart';
 import '../pages/mistake_book_page.dart';
 
-import '../models/question.dart';
 
 class QuestionResultPage extends StatefulWidget {
   final String question;

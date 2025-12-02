@@ -77,6 +77,7 @@ class Question {
   final QuestionSolution? solution;
   final String? imagePath; // 图片路径
   final bool isImageQuestion; // 是否为图片题
+  final int? timerSeconds; // ✅ 新增：答题倒计时（秒），null=不限时
 
   Question({
     required this.id,
@@ -92,6 +93,7 @@ class Question {
     this.solution,
     this.imagePath,
     this.isImageQuestion = false,
+    this.timerSeconds, // ✅ 新增
   });
 
   Map<String, dynamic> toJson() {
@@ -108,6 +110,7 @@ class Question {
       'tags': tags,
       'imagePath': imagePath,
       'isImageQuestion': isImageQuestion,
+      'timer_seconds': timerSeconds, // ✅ 新增：使用下划线命名（匹配后端）
       if (solution != null) 'solution': solution!.toJson(),
     };
   }
@@ -130,6 +133,7 @@ class Question {
       tags: List<String>.from(json['tags']),
       imagePath: json['imagePath'] as String?,
       isImageQuestion: json['isImageQuestion'] as bool? ?? false,
+      timerSeconds: json['timer_seconds'] as int?, // ✅ 新增：解析倒计时字段
       solution: json['solution'] != null
           ? QuestionSolution.fromJson(json['solution'] as Map<String, dynamic>)
           : null,
@@ -150,6 +154,7 @@ class Question {
     QuestionSolution? solution,
     String? imagePath,
     bool? isImageQuestion,
+    int? timerSeconds, // ✅ 新增
   }) {
     return Question(
       id: id ?? this.id,
@@ -165,6 +170,7 @@ class Question {
       solution: solution ?? this.solution,
       imagePath: imagePath ?? this.imagePath,
       isImageQuestion: isImageQuestion ?? this.isImageQuestion,
+      timerSeconds: timerSeconds ?? this.timerSeconds, // ✅ 新增
     );
   }
 

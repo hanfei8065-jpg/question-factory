@@ -20,7 +20,7 @@ class SolutionAnalysisPage extends StatefulWidget {
 class _SolutionAnalysisPageState extends State<SolutionAnalysisPage> {
   int _currentStep = 0;
   bool _showHint = false;
-  Map<String, bool> _expandedKnowledgePoints = {};
+  final Map<String, bool> _expandedKnowledgePoints = {};
 
   @override
   Widget build(BuildContext context) {

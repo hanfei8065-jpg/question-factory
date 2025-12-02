@@ -15,7 +15,7 @@ class CameraPreviewWidget extends StatefulWidget {
   final String? errorMessage;
 
   const CameraPreviewWidget({
-    Key? key,
+    super.key,
     required this.mode,
     required this.onCapture,
     required this.onModeToggle,
@@ -23,7 +23,7 @@ class CameraPreviewWidget extends StatefulWidget {
     required this.detectedCorners,
     required this.previewSize,
     this.errorMessage,
-  }) : super(key: key);
+  });
 
   @override
   State<CameraPreviewWidget> createState() => _CameraPreviewWidgetState();

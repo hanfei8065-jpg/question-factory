@@ -6,10 +6,10 @@ class DynamicCameraGuide extends StatefulWidget {
   final bool show;
 
   const DynamicCameraGuide({
-    Key? key,
+    super.key,
     required this.onComplete,
     required this.show,
-  }) : super(key: key);
+  });
 
   @override
   State<DynamicCameraGuide> createState() => _DynamicCameraGuideState();

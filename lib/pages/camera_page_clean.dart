@@ -9,18 +9,14 @@ import '../models/question.dart';
 import '../services/camera_service.dart';
 import '../services/question_cache_service.dart';
 import '../services/test_mode_service.dart';
-import '../services/openai_service.dart';
-import 'workspace_page.dart';
 import '../widgets/resizable_selection_box.dart';
 
 import '../models/camera_state.dart';
 import '../models/recognition_mode.dart';
-import '../widgets/camera_permission_guide.dart';
 import '../widgets/camera_preview.dart';
 import '../widgets/dynamic_camera_guide.dart';
 import '../widgets/camera_best_practices.dart';
 import '../widgets/photo_confirm_overlay.dart';
-import '../widgets/adjustable_question_box.dart';
 import 'question_result_page.dart';
 import '../widgets/grid_painter.dart' as grid;
 import '../services/model_manager.dart';
@@ -42,11 +38,11 @@ class _CameraPageState extends State<CameraPage>
   bool _showBestPractices = false;
   bool _showDynamicGuide = false;
   bool _showGrid = true;
-  bool _isFlashOn = false;
-  bool _showExposureSlider = false;
+  final bool _isFlashOn = false;
+  final bool _showExposureSlider = false;
   double _currentExposure = 0.0;
-  double _maxExposure = 1.0;
-  double _minExposure = -1.0;
+  final double _maxExposure = 1.0;
+  final double _minExposure = -1.0;
 
   // 模型管理
   final _modelManager = ModelManager();
@@ -64,9 +60,9 @@ class _CameraPageState extends State<CameraPage>
   int _currentQuestionIndex = 0;
 
   // 相机预览状态
-  RecognitionMode _mode = RecognitionMode.single;
+  final RecognitionMode _mode = RecognitionMode.single;
   bool _isProcessing = false;
-  List<Offset> _detectedCorners = [];
+  final List<Offset> _detectedCorners = [];
   final _questionDetector = QuestionDetectionService();
 
   // 文件选择状态
@@ -76,7 +72,7 @@ class _CameraPageState extends State<CameraPage>
 
   // 相机状态
   CameraState _cameraState = CameraState.initializing;
-  Size _previewSize = const Size(1280, 720);
+  final Size _previewSize = const Size(1280, 720);
 
   // 图片相关
   Image? _capturedImage;

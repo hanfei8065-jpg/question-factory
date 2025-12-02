@@ -7,8 +7,8 @@ class AppState extends ChangeNotifier {
   Subject _currentSubject = Subject.math;
   bool _isPro = false;
   int _gems = 0;
-  int _experience = 0;
-  int _streakDays = 0;
+  final int _experience = 0;
+  final int _streakDays = 0;
   DateTime? _lastActiveDate;
 
   AppState(this._prefs) {

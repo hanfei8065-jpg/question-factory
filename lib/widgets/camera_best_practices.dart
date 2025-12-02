@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 class CameraBestPractices extends StatelessWidget {
   final VoidCallback onClose;
 
-  const CameraBestPractices({Key? key, required this.onClose})
-    : super(key: key);
+  const CameraBestPractices({super.key, required this.onClose});
 
   @override
   Widget build(BuildContext context) {
@@ -87,13 +86,12 @@ class _PracticePair extends StatelessWidget {
   final String badImageAsset;
 
   const _PracticePair({
-    Key? key,
     required this.title,
     required this.goodDescription,
     required this.badDescription,
     required this.goodImageAsset,
     required this.badImageAsset,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -142,12 +140,11 @@ class _PracticeExample extends StatelessWidget {
   final bool isGood;
 
   const _PracticeExample({
-    Key? key,
     required this.label,
     required this.description,
     required this.imageAsset,
     required this.isGood,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

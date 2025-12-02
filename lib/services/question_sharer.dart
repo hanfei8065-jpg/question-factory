@@ -53,7 +53,7 @@ class QuestionSharer {
     buffer.writeln();
 
     // 如果包含答案，则添加答案部分
-    if (includeAnswer && question.answer != null) {
+    if (includeAnswer) {
       buffer.writeln('【答案】');
       buffer.writeln(question.answer);
       buffer.writeln();
