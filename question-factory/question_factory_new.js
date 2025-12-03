@@ -13,7 +13,7 @@ const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
 // ⚡️ SEQUENTIAL MODE: 串行执行配置 (No Concurrency)
 const TARGET_COUNT = 10; // 每次生成 10 道题 (一个接一个)
-const TASK_TIMEOUT_MS = 90000; // 单题超时: 90 秒
+const TASK_TIMEOUT_MS = 300000; // 单题超时: 300 秒 (5 分钟) - Chain of Thought 需要更多时间
 const DELAY_BETWEEN_QUESTIONS = 2000; // 每题之间等待 2 秒 
 
 // ==========================================
@@ -158,19 +158,53 @@ const US_K12_GRADES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
 // 随机参数生成
 function generateRandomParams() {
+  // ✅ NEW: Check for TARGET_SUBJECT environment variable (for Matrix Mode)
+  const targetSubject = process.env.TARGET_SUBJECT;
+  
   const allSubjects = Object.keys(knowledgePointsDatabase);
   // ✅ US K-12 System: Grades 1-12 (complete range)
   const allGrades = ['grand1','grand2','grand3','grand4','grand5','grand6','grand7','grand8','grand9','grand10','grand11','grand12'];
   const grade = allGrades[Math.floor(Math.random() * allGrades.length)];
   const isPrimary = ['grand1','grand2','grand3','grand4','grand5'].includes(grade);
   
-  let subjects;
-  if (isPrimary) {
-    subjects = allSubjects.filter(s => s !== '化学');
+  let subject;
+  
+  // ⚡️ FORCE SUBJECT if TARGET_SUBJECT is set (Matrix Mode)
+  if (targetSubject) {
+    // Map English subject names to Chinese (for database lookup)
+    const subjectMap = {
+      'math': '数学',
+      'physics': '物理',
+      'chemistry': '化学',
+      'olympiad': '数学奥林匹克'
+    };
+    
+    subject = subjectMap[targetSubject.toLowerCase()];
+    
+    if (!subject || !knowledgePointsDatabase[subject]) {
+      console.error(`❌ Invalid TARGET_SUBJECT: ${targetSubject}. Falling back to random.`);
+      // Fallback to random selection
+      let subjects;
+      if (isPrimary) {
+        subjects = allSubjects.filter(s => s !== '化学');
+      } else {
+        subjects = allSubjects;
+      }
+      subject = subjects[Math.floor(Math.random() * subjects.length)];
+    } else {
+      console.log(`🎯 TARGET_SUBJECT Mode: Forcing subject = ${subject} (${targetSubject})`);
+    }
   } else {
-    subjects = allSubjects;
+    // Original random behavior
+    let subjects;
+    if (isPrimary) {
+      subjects = allSubjects.filter(s => s !== '化学');
+    } else {
+      subjects = allSubjects;
+    }
+    subject = subjects[Math.floor(Math.random() * subjects.length)];
   }
-  const subject = subjects[Math.floor(Math.random() * subjects.length)];
+  
   const difficulty = difficulties[Math.floor(Math.random() * difficulties.length)];
   const questionType = questionTypes[Math.floor(Math.random() * questionTypes.length)];
   const knowledgePoints = knowledgePointsDatabase[subject][grade];
@@ -375,6 +409,8 @@ function parseDeepSeekTextResponse(content) {
 // DeepSeek 出题
 async function callDeepSeekAgent(params) {
   const prompt = buildPrompt(params);
+  const startTime = Date.now(); // ⏱️ Track API call duration
+  
   try {
     const response = await httpsRequest('https://api.deepseek.com/chat/completions', {
       method: 'POST',
@@ -389,8 +425,11 @@ async function callDeepSeekAgent(params) {
       max_tokens: 3000
     });
 
+    const duration = ((Date.now() - startTime) / 1000).toFixed(1); // Calculate duration in seconds
+    console.log(`   ⏱️  API Response Time: ${duration}s`);
+
     if (!response.choices || !response.choices[0]) {
-      console.error('DeepSeek API 无响应内容');
+      console.error('   ❌ DeepSeek API returned no content');
       return [];
     }
     
@@ -411,7 +450,8 @@ async function callDeepSeekAgent(params) {
         : [`${params.subject} (${params.subject})`, `${params.grade}`, `${params.knowledgePoint}`]  // 回退方案
     }));
   } catch (err) {
-    console.error('DeepSeek 调用失败:', err.message);
+    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+    console.error(`   ❌ DeepSeek API failed after ${duration}s: ${err.message}`);
     return [];
   }
 }
