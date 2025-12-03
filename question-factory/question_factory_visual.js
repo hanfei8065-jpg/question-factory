@@ -5,9 +5,10 @@ const fs = require('fs');
 const path = require('path');
 
 // ==========================================
-// 🎨 VISUAL QUESTION FACTORY
+// 🎨 VISUAL QUESTION FACTORY v2.0
 // Purpose: Generate questions with SVG diagrams
 // Target: Geometry (Math) + Mechanics (Physics)
+// NEW: 120s timeout, 3x retry, 5s rate limiting
 // ==========================================
 
 // Load .env file manually (no external dependencies)
@@ -32,6 +33,16 @@ if (!DEEPSEEK_API_KEY || !SUPABASE_URL || !SUPABASE_KEY) {
   console.error('❌ Missing environment variables. Check .env file.');
   process.exit(1);
 }
+
+// ==========================================
+// ⚙️ CONFIGURATION
+// ==========================================
+const CONFIG = {
+  API_TIMEOUT: 120000,      // 120 seconds (2 minutes) for SVG generation
+  MAX_RETRIES: 3,           // Retry up to 3 times per question
+  RETRY_DELAY: 10000,       // Wait 10 seconds between retries
+  RATE_LIMIT_DELAY: 5000,   // Wait 5 seconds between questions
+};
 
 // ==========================================
 // 📐 VISUAL QUESTION DATABASE
@@ -208,10 +219,10 @@ function httpsRequest(url, options, data) {
       });
     });
     req.on('error', reject);
-    req.setTimeout(120000); // 2 minutes for complex SVG generation
+    req.setTimeout(CONFIG.API_TIMEOUT); // ✅ NEW: 120 seconds timeout
     req.on('timeout', () => {
       req.destroy();
-      reject(new Error('Request timed out'));
+      reject(new Error('Request timed out after ' + (CONFIG.API_TIMEOUT / 1000) + 's'));
     });
     if (data) req.write(JSON.stringify(data));
     req.end();
@@ -219,11 +230,59 @@ function httpsRequest(url, options, data) {
 }
 
 // ==========================================
+// 🔁 RETRY UTILITIES
+// ==========================================
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function retryWithBackoff(fn, maxRetries = CONFIG.MAX_RETRIES, retryDelay = CONFIG.RETRY_DELAY) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (attempt === maxRetries) {
+        throw err; // Final attempt failed, throw error
+      }
+      
+      console.log(`   ⚠️  Attempt ${attempt}/${maxRetries} failed: ${err.message}`);
+      console.log(`   ⏳ Waiting ${retryDelay / 1000}s before retry...`);
+      await sleep(retryDelay);
+    }
+  }
+}
+
+// ==========================================
 // 🎯 CORE LOGIC
 // ==========================================
 function generateRandomParams() {
-  const subjects = Object.keys(VISUAL_TOPICS);
-  const subject = subjects[Math.floor(Math.random() * subjects.length)];
+  // ✅ NEW: Support TARGET_SUBJECT environment variable for Matrix workflow
+  const targetSubject = process.env.TARGET_SUBJECT;
+  
+  let subject;
+  if (targetSubject) {
+    // Map English subject names to Chinese
+    const subjectMap = {
+      'math': '数学',
+      'physics': '物理',
+      'chemistry': '化学',
+      'olympiad': '奥数'
+    };
+    
+    subject = subjectMap[targetSubject.toLowerCase()];
+    
+    if (!subject || !VISUAL_TOPICS[subject]) {
+      console.error(`❌ Invalid TARGET_SUBJECT: ${targetSubject}. Using random selection.`);
+      const subjects = Object.keys(VISUAL_TOPICS);
+      subject = subjects[Math.floor(Math.random() * subjects.length)];
+    } else {
+      console.log(`🎯 Target Subject Mode: ${subject} (${targetSubject})`);
+    }
+  } else {
+    // Original random behavior
+    const subjects = Object.keys(VISUAL_TOPICS);
+    subject = subjects[Math.floor(Math.random() * subjects.length)];
+  }
   
   const grades = Object.keys(VISUAL_TOPICS[subject]);
   const grade = grades[Math.floor(Math.random() * grades.length)];
@@ -249,7 +308,7 @@ function parseDeepSeekResponse(content) {
       try {
         return JSON.parse(jsonBlockMatch[0]);
       } catch (e2) {
-        console.error('JSON parsing failed:', e2.message);
+        console.error('   ❌ JSON parsing failed:', e2.message);
       }
     }
   }
@@ -259,7 +318,8 @@ function parseDeepSeekResponse(content) {
 async function callDeepSeekVisual(params) {
   const prompt = buildVisualPrompt(params);
   
-  try {
+  // ✅ NEW: Wrap API call in retry logic
+  const apiCall = async () => {
     const response = await httpsRequest('https://api.deepseek.com/chat/completions', {
       method: 'POST',
       headers: {
@@ -274,9 +334,15 @@ async function callDeepSeekVisual(params) {
     });
 
     if (!response.choices || !response.choices[0]) {
-      console.error('❌ DeepSeek API 无响应');
-      return [];
+      throw new Error('DeepSeek API returned no response');
     }
+    
+    return response;
+  };
+
+  try {
+    // ✅ NEW: Retry up to 3 times with 10s delay
+    const response = await retryWithBackoff(apiCall);
     
     const content = response.choices[0].message.content;
     const questions = parseDeepSeekResponse(content);
@@ -284,13 +350,13 @@ async function callDeepSeekVisual(params) {
     // Validate SVG exists
     return questions.filter(q => {
       if (!q.svg_diagram || q.svg_diagram.trim() === '') {
-        console.warn('⚠️  Question missing SVG diagram, skipping');
+        console.warn('   ⚠️  Question missing SVG diagram, skipping');
         return false;
       }
       return true;
     });
   } catch (err) {
-    console.error('❌ DeepSeek 调用失败:', err.message);
+    console.error(`   ❌ DeepSeek API failed after ${CONFIG.MAX_RETRIES} attempts:`, err.message);
     return [];
   }
 }
@@ -335,27 +401,17 @@ async function insertToSupabase(questions) {
   });
 
   try {
-    // DEBUG: Log the data we're trying to insert
-    console.log('\n🔍 DEBUG: Attempting to insert the following data:');
-    console.log(JSON.stringify(dbRows[0], null, 2));
-    console.log(`\n📦 Total rows: ${dbRows.length}`);
-    
-    // ✅ FIX: Add detailed error logging
     const response = await httpsRequest(`${SUPABASE_URL}/rest/v1/questions`, {
       method: 'POST',
       headers: {
         'apikey': SUPABASE_KEY,
         'Authorization': `Bearer ${SUPABASE_KEY}`,
         'Content-Type': 'application/json',
-        'Prefer': 'return=representation'  // ✅ FIX: Return inserted data to check for errors
+        'Prefer': 'return=representation'
       }
     }, dbRows);
     
-    // DEBUG: Log the full response
-    console.log('\n📥 DEBUG: Supabase response:');
-    console.log(JSON.stringify(response, null, 2));
-    
-    // ✅ FIX: Check for errors in response
+    // Check for errors in response
     if (response && (response.error || response.code)) {
       console.error('\n❌ Supabase INSERT ERROR:');
       console.error('   Code:', response.code);
@@ -370,11 +426,9 @@ async function insertToSupabase(questions) {
       return 0;
     }
     
-    console.log(`✅ Supabase confirmed insert of ${dbRows.length} rows`);
     return dbRows.length;
   } catch (err) {
-    console.error('❌ Supabase 写入失败:', err.message);
-    console.error('❌ Error stack:', err.stack);
+    console.error('❌ Supabase insert failed:', err.message);
     console.error('❌ Sample row that failed:', JSON.stringify(dbRows[0], null, 2));
     return 0;
   }
@@ -386,10 +440,13 @@ async function insertToSupabase(questions) {
 async function main() {
   const count = parseInt(process.argv[2]) || 5;
   
-  console.log(`🎨 Visual Question Factory (SVG Diagrams)`);
-  console.log(`📊 Target: ${count} questions\n`);
+  console.log(`🎨 Visual Question Factory v2.0 (SVG Diagrams)`);
+  console.log(`📊 Target: ${count} questions`);
+  console.log(`⚙️  Config: ${CONFIG.API_TIMEOUT / 1000}s timeout, ${CONFIG.MAX_RETRIES}x retries, ${CONFIG.RATE_LIMIT_DELAY / 1000}s rate limit\n`);
 
   const allQuestions = [];
+  let successCount = 0;
+  let failCount = 0;
   
   for (let i = 1; i <= count; i++) {
     console.log(`🔄 [${i}/${count}] Generating visual question...`);
@@ -400,20 +457,37 @@ async function main() {
     
     if (questions.length > 0) {
       allQuestions.push(...questions);
-      console.log(`   ✅ Generated with SVG (${questions[0].svg_diagram.length} chars)\n`);
+      successCount++;
+      console.log(`   ✅ Generated with SVG (${questions[0].svg_diagram.length} chars)`);
     } else {
-      console.log(`   ❌ Failed to generate\n`);
+      failCount++;
+      console.log(`   ❌ Failed to generate after ${CONFIG.MAX_RETRIES} retries`);
+    }
+    
+    // ✅ NEW: Rate limiting - wait 5 seconds between questions
+    if (i < count) {
+      console.log(`   ⏳ Rate limit: waiting ${CONFIG.RATE_LIMIT_DELAY / 1000}s before next question...\n`);
+      await sleep(CONFIG.RATE_LIMIT_DELAY);
+    } else {
+      console.log(''); // Final newline
     }
   }
 
+  console.log(`\n📊 Generation Summary:`);
+  console.log(`   ✅ Success: ${successCount}/${count} questions`);
+  console.log(`   ❌ Failed: ${failCount}/${count} questions`);
+
   if (allQuestions.length > 0) {
-    console.log(`💾 Saving ${allQuestions.length} visual questions to Supabase...`);
+    console.log(`\n💾 Saving ${allQuestions.length} visual questions to Supabase...`);
     const inserted = await insertToSupabase(allQuestions);
-    console.log(`✅ Success! Inserted ${inserted} visual questions with SVG diagrams.`);
+    console.log(`✅ Success! Inserted ${inserted}/${allQuestions.length} visual questions with SVG diagrams.`);
   } else {
-    console.error(`❌ No valid visual questions generated.`);
+    console.error(`\n❌ No valid visual questions generated. All ${count} attempts failed.`);
     process.exit(1);
   }
 }
 
-main();
+main().catch(err => {
+  console.error('\n💥 Fatal error:', err);
+  process.exit(1);
+});
