@@ -298,36 +298,53 @@ async function callDeepSeekVisual(params) {
 async function insertToSupabase(questions) {
   if (!questions || questions.length === 0) return 0;
   
+  // ✅ FIX: Map to correct Supabase column names
   const dbRows = questions.map(q => ({
-    problem_text: q.content || q.question,
-    correct_answer: q.answer,
-    explanation: q.explanation || '',
-    options: q.options ? JSON.stringify(q.options) : null,
-    subject: q.subject,
-    grade_level: q.grade,
-    difficulty: q.difficulty,
-    knowledge_point: q.topic || '',
-    type: q.type || '选择题',
-    tags: Array.isArray(q.tags) ? JSON.stringify(q.tags) : null,
-    timer_seconds: q.timer_seconds || 90,
-    is_image_question: false,
-    svg_diagram: q.svg_diagram // ✅ New field
+    problem_text: q.content || q.question,        // 题目内容
+    correct_answer: q.answer,                      // 正确答案
+    explanation: q.explanation || '',              // 解析
+    options: q.options ? JSON.stringify(q.options) : null,  // 选项
+    subject: q.subject,                            // 科目
+    grade_level: q.grade || q.grade_level,        // 年级 (grand7, grand8, etc.)
+    difficulty: q.difficulty,                      // 难度
+    knowledge_point: q.topic || q.knowledge_point || '',  // 知识点
+    type: q.type || '选择题',                      // 题型
+    tags: Array.isArray(q.tags) ? JSON.stringify(q.tags) : null,  // 标签
+    timer_seconds: q.timer_seconds || 90,          // 计时
+    is_image_question: false,                      // 非图片题
+    svg_diagram: q.svg_diagram || null             // ✅ SVG 图表
   }));
 
   try {
-    await httpsRequest(`${SUPABASE_URL}/rest/v1/questions`, {
+    // ✅ FIX: Add detailed error logging
+    const response = await httpsRequest(`${SUPABASE_URL}/rest/v1/questions`, {
       method: 'POST',
       headers: {
         'apikey': SUPABASE_KEY,
         'Authorization': `Bearer ${SUPABASE_KEY}`,
         'Content-Type': 'application/json',
-        'Prefer': 'return=minimal'
+        'Prefer': 'return=representation'  // ✅ FIX: Return inserted data to check for errors
       }
     }, dbRows);
     
+    // ✅ FIX: Check for errors in response
+    if (response && response.error) {
+      console.error('❌ Supabase INSERT ERROR:', JSON.stringify(response.error, null, 2));
+      console.error('❌ Failed rows sample:', JSON.stringify(dbRows[0], null, 2));
+      return 0;
+    }
+    
+    if (typeof response === 'string' && response.includes('error')) {
+      console.error('❌ Supabase returned error string:', response.substring(0, 500));
+      return 0;
+    }
+    
+    console.log(`✅ Supabase confirmed insert of ${dbRows.length} rows`);
     return dbRows.length;
   } catch (err) {
     console.error('❌ Supabase 写入失败:', err.message);
+    console.error('❌ Error stack:', err.stack);
+    console.error('❌ Sample row that failed:', JSON.stringify(dbRows[0], null, 2));
     return 0;
   }
 }
