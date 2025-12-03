@@ -38,9 +38,9 @@ if (!DEEPSEEK_API_KEY || !SUPABASE_URL || !SUPABASE_KEY) {
 // ⚙️ CONFIGURATION
 // ==========================================
 const CONFIG = {
-  API_TIMEOUT: 120000,      // 120 seconds (2 minutes) for SVG generation
+  API_TIMEOUT: 300000,      // 300 seconds (5 minutes) for SVG generation
   MAX_RETRIES: 3,           // Retry up to 3 times per question
-  RETRY_DELAY: 10000,       // Wait 10 seconds between retries
+  RETRY_DELAY: 30000,       // Wait 30 seconds between retries
   RATE_LIMIT_DELAY: 5000,   // Wait 5 seconds between questions
 };
 

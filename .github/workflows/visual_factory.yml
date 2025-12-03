@@ -6,13 +6,13 @@ on:
 jobs:
   generate-visual-questions:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
     strategy:
       max-parallel: 20
       fail-fast: false
       matrix:
-        subject: [math, physics, chemistry, olympiad]
-        batch: [1, 2, 3, 4, 5] # 20 jobs total
+        subject: [math, physics]
+        batch: [1, 2, 3, 4, 5] # 10 jobs total (2 subjects × 5 batches)
 
     steps:
       - uses: actions/checkout@v3
