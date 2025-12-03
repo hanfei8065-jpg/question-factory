@@ -11,10 +11,10 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
-// 并发设置：一次触发同时跑几个任务（降低并发减少 API 压力）
-const CONCURRENCY_LIMIT = 10; // 从 15 降到 10
-// 超时设置：单个任务最大允许时间 (毫秒) - 延长到 90 秒
-const TASK_TIMEOUT_MS = 90000; // 从 50s 提升到 90s 
+// ⚡️ SEQUENTIAL MODE: 串行执行配置 (No Concurrency)
+const TARGET_COUNT = 10; // 每次生成 10 道题 (一个接一个)
+const TASK_TIMEOUT_MS = 90000; // 单题超时: 90 秒
+const DELAY_BETWEEN_QUESTIONS = 2000; // 每题之间等待 2 秒 
 
 // ==========================================
 // 2. 核心数据结构 (Syllabus)
@@ -473,50 +473,68 @@ function withTimeout(promise, ms) {
 }
 
 // 单个任务流程
-async function runOneTask() {
-  const params = generateRandomParams();
-  // 50秒超时限制
-  const questions = await withTimeout(callDeepSeekAgent(params), TASK_TIMEOUT_MS);
-  return questions;
-}
-
 // ==========================================
-// 5. 主执行入口 (并发版)
+// 5. 主执行入口 (串行模式 - Sequential Mode)
 // ==========================================
-async function mainBatch() {
-  // 🚦 STAGGER START: 随机延迟 0-60 秒，避免 20 个并发任务同时触发 API
-  const delayMs = Math.floor(Math.random() * 60000);
-  console.log(`🚦 Staggering start: Waiting for ${delayMs}ms (${(delayMs/1000).toFixed(1)}s) to avoid rate limits...`);
-  await new Promise(resolve => setTimeout(resolve, delayMs));
+async function mainSequential() {
+  console.log(`� Starting Sequential Mode (One by One) to ensure stability...`);
+  console.log(`📊 Target: Generate ${TARGET_COUNT} questions sequentially`);
+  console.log(`⏱️  Timeout per question: ${TASK_TIMEOUT_MS / 1000}s`);
+  console.log(`⏳ Delay between questions: ${DELAY_BETWEEN_QUESTIONS / 1000}s\n`);
   
-  console.log(`🚀 [Factory] 启动并发任务 (并发数: ${CONCURRENCY_LIMIT})...`);
-  
-  // 1. 创建并发任务
-  const tasks = Array.from({ length: CONCURRENCY_LIMIT }).map(() => 
-    runOneTask().catch(e => {
-      console.error('⚠️ 单个任务失败:', e.message);
-      return []; // 失败返回空数组，不影响其他
-    })
-  );
+  const allQuestions = [];
+  let successCount = 0;
+  let failCount = 0;
 
-  // 2. 等待所有任务结束 (Promise.allSettled 的替代写法，上面 catch 已经处理了异常)
-  const results = await Promise.all(tasks);
+  // 串行循环: 一次生成一道题
+  for (let i = 1; i <= TARGET_COUNT; i++) {
+    console.log(`\n🔄 [${i}/${TARGET_COUNT}] Generating question...`);
+    
+    try {
+      const params = generateRandomParams();
+      console.log(`   � Subject: ${params.subject}, Grade: ${params.grade.replace('grand', '')}, Topic: ${params.knowledgePoint}`);
+      
+      // 生成题目 (带超时保护)
+      const questions = await withTimeout(callDeepSeekAgent(params), TASK_TIMEOUT_MS);
+      
+      if (questions && questions.length > 0) {
+        allQuestions.push(...questions);
+        successCount++;
+        console.log(`   ✅ Success! Generated ${questions.length} question(s)`);
+      } else {
+        failCount++;
+        console.log(`   ⚠️  Warning: No valid questions returned`);
+      }
+    } catch (error) {
+      failCount++;
+      console.error(`   ❌ Error: ${error.message}`);
+    }
+    
+    // 等待 2 秒后继续下一题 (避免 API 限流)
+    if (i < TARGET_COUNT) {
+      console.log(`   ⏳ Waiting ${DELAY_BETWEEN_QUESTIONS / 1000}s before next question...`);
+      await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_QUESTIONS));
+    }
+  }
 
-  // 3. 汇总题目
-  const allQuestions = results.flat();
+  // 最终统计
+  console.log(`\n📊 Generation Summary:`);
+  console.log(`   ✅ Success: ${successCount}/${TARGET_COUNT}`);
+  console.log(`   ❌ Failed: ${failCount}/${TARGET_COUNT}`);
+  console.log(`   📝 Total Questions: ${allQuestions.length}`);
 
-  // 4. 批量写入
+  // 批量写入数据库
   if (allQuestions.length > 0) {
-    console.log(`💾 正在写入 ${allQuestions.length} 道题目...`);
+    console.log(`\n💾 Inserting ${allQuestions.length} questions to Supabase...`);
     const inserted = await insertToSupabase(allQuestions);
-    console.log(`✅ [Batch Complete] 成功入库: ${inserted}`);
+    console.log(`✅ [Complete] Successfully inserted: ${inserted} questions`);
   } else {
     // ❌ FAIL ON EMPTY: 如果没有生成任何题目，脚本必须以错误退出
-    console.error(`❌ [CRITICAL ERROR] 本次未生成任何有效题目 - API 可能被限流或出错！`);
-    console.error(`❌ GitHub Actions 将显示为失败状态 (RED CROSS ❌)`);
+    console.error(`\n❌ [CRITICAL ERROR] No valid questions generated - API may be rate-limited or down!`);
+    console.error(`❌ GitHub Actions will show as FAILED (RED CROSS ❌)`);
     process.exit(1); // 退出码 1 = 失败
   }
 }
 
-// 执行一次并退出 (适配 GitHub Actions)
-mainBatch();
+// 执行串行模式
+mainSequential();
