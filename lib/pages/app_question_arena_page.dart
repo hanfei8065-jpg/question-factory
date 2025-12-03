@@ -1,5 +1,6 @@
 import 'dart:async'; // ✅ 新增：用于 Timer
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart'; // ✅ SVG 支持
 import '../services/user_progress_service.dart';
 import '../services/question_service.dart'; // ✅ 新增：QuestionService
 import '../models/question.dart'; // ✅ 新增：Question 模型
@@ -730,6 +731,34 @@ class _AppQuestionArenaPageState extends State<AppQuestionArenaPage> {
                             ],
                           ),
                         if (_totalSeconds > 0) const SizedBox(height: 12),
+
+                        // ✅ SVG 图表 (Visual Question Bank)
+                        if (q['svg_diagram'] != null &&
+                            (q['svg_diagram'] as String).isNotEmpty) ...[
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Colors.grey[300]!,
+                                width: 1,
+                              ),
+                            ),
+                            padding: const EdgeInsets.all(16),
+                            child: Center(
+                              child: SvgPicture.string(
+                                q['svg_diagram'],
+                                height: 200,
+                                placeholderBuilder: (context) => Container(
+                                  height: 200,
+                                  alignment: Alignment.center,
+                                  child: const CircularProgressIndicator(),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
 
                         // 题目文字
                         Text(
