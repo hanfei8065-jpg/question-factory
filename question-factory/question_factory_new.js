@@ -151,9 +151,15 @@ function httpsRequest(url, options, data) {
   });
 }
 
+// ==========================================
+// 📚 US K-12 GRADE SYSTEM CONFIGURATION
+// ==========================================
+const US_K12_GRADES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+
 // 随机参数生成
 function generateRandomParams() {
   const allSubjects = Object.keys(knowledgePointsDatabase);
+  // ✅ US K-12 System: Grades 1-12 (complete range)
   const allGrades = ['grand1','grand2','grand3','grand4','grand5','grand6','grand7','grand8','grand9','grand10','grand11','grand12'];
   const grade = allGrades[Math.floor(Math.random() * allGrades.length)];
   const isPrimary = ['grand1','grand2','grand3','grand4','grand5'].includes(grade);
@@ -175,19 +181,65 @@ function generateRandomParams() {
 
 // 提示词构建（Production-Grade System Prompt with Golden Standards）
 function buildPrompt(params) {
-  // 1. 在代码层强制计算 timer_seconds，不依赖 AI 随机生成
-  // 逻辑：难度越高，时间越长。奥数/高级题给予更多时间。
+  // ==========================================
+  // 🎯 US K-12 SUBJECT MAPPING LOGIC
+  // ==========================================
+  const gradeNum = parseInt(params.grade.replace('grand', ''));
+  let contextSubject = params.subject; // 默认使用原始科目名
+  
+  // 1. ELEMENTARY (Grades 1-5): Adapt Physics/Chemistry to "Elementary Science"
+  if (gradeNum >= 1 && gradeNum <= 5) {
+    if (params.subject === '物理' || params.subject === 'physics') {
+      contextSubject = 'Elementary Physical Science (Matter, Energy, Forces)';
+    } else if (params.subject === '化学' || params.subject === 'chemistry') {
+      contextSubject = 'Elementary Physical Science (Matter, Properties, Changes)';
+    } else if (params.subject === '数学' || params.subject === 'math') {
+      contextSubject = 'Elementary Mathematics (Common Core Standards)';
+    } else if (params.subject === '数学奥林匹克' || params.subject === 'olympiad') {
+      contextSubject = 'Elementary Math Olympiad (Math Kangaroo / MOEMS)';
+    }
+  } 
+  // 2. MIDDLE SCHOOL (Grades 6-8): Introductory specialized subjects
+  else if (gradeNum >= 6 && gradeNum <= 8) {
+    if (params.subject === '物理' || params.subject === 'physics') {
+      contextSubject = 'Middle School Physical Science (NGSS Standards)';
+    } else if (params.subject === '化学' || params.subject === 'chemistry') {
+      contextSubject = 'Middle School Chemistry (NGSS Standards)';
+    } else if (params.subject === '数学奥林匹克' || params.subject === 'olympiad') {
+      contextSubject = 'Middle School Math Olympiad (AMC 8 / MathCounts)';
+    }
+  }
+  // 3. HIGH SCHOOL (Grades 9-12): Advanced subjects
+  else if (gradeNum >= 9 && gradeNum <= 12) {
+    if (params.subject === '物理' || params.subject === 'physics') {
+      contextSubject = 'High School Physics (AP Physics / SAT Subject Test Level)';
+    } else if (params.subject === '化学' || params.subject === 'chemistry') {
+      contextSubject = 'High School Chemistry (AP Chemistry / SAT Subject Test Level)';
+    } else if (params.subject === '数学奥林匹克' || params.subject === 'olympiad') {
+      contextSubject = 'High School Math Olympiad (AMC 10/12 / AIME)';
+    }
+  }
+
+  // ==========================================
+  // ⏱️ ADAPTIVE TIMER LOGIC (Age-Appropriate)
+  // ==========================================
+  // 规则：小学生需要更多时间阅读，即使题目简单
   const timerMap = {
     '初级难度': 30,
     '中级难度': 60,
     '高级难度': 90,
     '竞赛难度': 120 
   };
-  // 默认 60 秒
-  const calculatedTimer = timerMap[params.difficulty] || 60;
+  let calculatedTimer = timerMap[params.difficulty] || 60;
+  
+  // CRITICAL: Elementary students (Grades 1-5) need MORE time to read
+  if (gradeNum >= 1 && gradeNum <= 5) {
+    calculatedTimer = Math.max(60, calculatedTimer); // 最少 60 秒
+  }
 
-  // 2. 难度校准标准（根据年级动态调整）
-  const gradeNum = parseInt(params.grade.replace('grand', ''));
+  // ==========================================
+  // 📐 DIFFICULTY CALIBRATION STANDARDS
+  // ==========================================
   let difficultyStandard = '';
   if (gradeNum >= 10 && gradeNum <= 12) {
     difficultyStandard = `
@@ -205,20 +257,24 @@ function buildPrompt(params) {
 `;
   } else {
     difficultyStandard = `
-**DIFFICULTY CALIBRATION FOR GRADE ${gradeNum}**:
-- Age-appropriate challenges.
-- For "高级难度", introduce word problems requiring multiple steps.
+**DIFFICULTY CALIBRATION FOR GRADE ${gradeNum} (Elementary)**:
+- Age-appropriate challenges for young learners (simple language, concrete examples).
+- For "高级难度", introduce word problems requiring 2-3 steps.
+- Use visual/tangible contexts (apples, toys, classroom scenarios).
 `;
   }
 
-  // 3. 构造 Prompt
+  // ==========================================
+  // 🔨 CONSTRUCT FINAL PROMPT
+  // ==========================================
   return `
 ROLE: You are an expert US K-12 Curriculum Designer specializing in creating SAT/AP/AMC-level questions.
 
-TASK: Generate EXACTLY 3 high-quality ${params.subject} questions.
+TASK: Generate EXACTLY 3 high-quality ${contextSubject} questions.
 
 CONTEXT: 
-- Grade: ${params.grade} (US Standard)
+- Grade: ${gradeNum} (US K-12 Standard)
+- Subject Context: ${contextSubject}
 - Topic: ${params.knowledgePoint}
 - Difficulty: ${params.difficulty}
 - Type: ${params.questionType} (Strictly adhere to this type)
