@@ -294,7 +294,12 @@ ${GOLDEN_EXAMPLES}
 ### CRITICAL RULES (ZERO TOLERANCE FOR ERRORS):
 1. **OUTPUT FORMAT**: Return ONLY a valid JSON array. NO markdown formatting (no \`\`\`), no greetings.
 
-2. **LANGUAGE**: Question content in English (unless it's a language subject). Explanations can be simple.
+2. **LANGUAGE CONSTRAINT** ⚠️:
+   - The "content", "options", and "explanation" fields MUST be written in **ACADEMIC ENGLISH**.
+   - Do NOT use Chinese in question content, options, or explanations.
+   - ONLY the "tags" field should be Bilingual (English with Chinese translation).
+   - Example: Content = "Solve for x: \\\\( 2x + 5 = 15 \\\\)" (✅ English)
+   - WRONG: Content = "求解x: \\\\( 2x + 5 = 15 \\\\)" (❌ Chinese)
 
 3. **OPTIONS**: 
    - If type is "选择题": Provide exactly 4 options ["A)...", "B)...", "C)...", "D)..."].

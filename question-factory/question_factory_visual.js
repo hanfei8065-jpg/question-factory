@@ -161,20 +161,28 @@ ${SVG_EXAMPLES}
 
 ### 📐 VISUAL QUESTION REQUIREMENTS:
 
-1. **Question Design**:
+1. **LANGUAGE CONSTRAINT** ⚠️ (CRITICAL):
+   - The "content", "options", and "explanation" fields MUST be written in **ACADEMIC ENGLISH**.
+   - SVG diagram labels/text MUST use **English words or numbers only** (NOT Chinese characters).
+   - Do NOT use Chinese in question content, options, explanations, or SVG labels.
+   - ONLY the "tags" field should be Bilingual (English with Chinese translation).
+   - Example SVG Label: <text>Force = 10N</text> (✅ English)
+   - WRONG SVG Label: <text>力 = 10N</text> (❌ Chinese)
+
+2. **Question Design**:
    - The question MUST require analyzing a visual diagram to solve
    - Examples: "Find angle ABC", "Calculate the normal force on the block", "What is the area of the shaded region?"
    - AVOID: Questions that can be solved without looking at the diagram
 
-2. **SVG Code Generation**:
+3. **SVG Code Generation**:
    - You MUST generate valid SVG XML code
    - Follow the examples above EXACTLY
    - Use viewBox="0 0 300 300"
    - Keep it simple: basic shapes, black strokes, minimal colors
-   - Add clear labels using <text> elements
+   - Add clear labels using <text> elements **in English or numbers only**
    - For arrows, use <marker> definitions (see examples)
 
-3. **JSON Structure**:
+4. **JSON Structure**:
    Return ONLY valid JSON (no markdown, no greetings):
    [
      {
@@ -193,7 +201,7 @@ ${SVG_EXAMPLES}
      }
    ]
 
-4. **CRITICAL VALIDATION**:
+5. **CRITICAL VALIDATION**:
    - Ensure SVG is valid XML (properly closed tags, escaped quotes)
    - Test mentally: Does the diagram clearly show the problem setup?
    - Labels must be readable (font-size: 14-16)
