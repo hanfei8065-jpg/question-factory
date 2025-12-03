@@ -6,6 +6,7 @@ import 'theme/app_theme.dart';
 import 'pages/app_question_bank_page.dart';
 import 'pages/app_camera_page.dart';
 import 'pages/app_profile_page.dart';
+import 'pages/splash_page.dart'; // ✅ 新增：启动页面
 import 'services/user_progress_service.dart';
 import 'services/translation_service.dart';
 
@@ -62,7 +63,7 @@ class LearnistApp extends StatelessWidget {
           title: 'Learnist.AI',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.theme, // Using AppTheme with WeChat color standards
-          home: const MainNavigator(),
+          home: const SplashPage(), // ✅ 启动页面：显示 Logo 2 秒后导航
         );
       },
     );

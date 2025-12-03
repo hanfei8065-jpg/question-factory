@@ -298,24 +298,48 @@ async function callDeepSeekVisual(params) {
 async function insertToSupabase(questions) {
   if (!questions || questions.length === 0) return 0;
   
-  // ✅ FIX: Map to correct Supabase column names
-  const dbRows = questions.map(q => ({
-    problem_text: q.content || q.question,        // 题目内容
-    correct_answer: q.answer,                      // 正确答案
-    explanation: q.explanation || '',              // 解析
-    options: q.options ? JSON.stringify(q.options) : null,  // 选项
-    subject: q.subject,                            // 科目
-    grade_level: q.grade || q.grade_level,        // 年级 (grand7, grand8, etc.)
-    difficulty: q.difficulty,                      // 难度
-    knowledge_point: q.topic || q.knowledge_point || '',  // 知识点
-    type: q.type || '选择题',                      // 题型
-    tags: Array.isArray(q.tags) ? JSON.stringify(q.tags) : null,  // 标签
-    timer_seconds: q.timer_seconds || 90,          // 计时
-    is_image_question: false,                      // 非图片题
-    svg_diagram: q.svg_diagram || null             // ✅ SVG 图表
-  }));
+  // ✅ Map to ACTUAL Supabase schema (confirmed via test_insert.js)
+  const dbRows = questions.map(q => {
+    // Extract grade number from "grand9" → 9
+    const gradeNum = parseInt((q.grade || 'grand9').replace('grand', ''));
+    
+    // Extract ONLY the answer letter (A/B/C/D)
+    const answerLetter = (q.answer || 'A').replace(/[^A-D]/g, '').charAt(0) || 'A';
+    
+    // Convert options array format: remove "A) " prefixes
+    const optionsArray = Array.isArray(q.options) 
+      ? q.options.map(opt => opt.replace(/^[A-D]\)\s*/, ''))
+      : ['Option A', 'Option B', 'Option C', 'Option D'];
+    
+    // Map subject to enum (math/physics)
+    const subjectEnum = (q.subject || '数学').toLowerCase() === '数学' ? 'math' : 
+                        (q.subject || '').toLowerCase() === '物理' ? 'physics' : 'math';
+    
+    // Map difficulty to integer 1-5
+    const difficultyMap = { '初级难度': 2, '中级难度': 3, '高级难度': 4 };
+    const difficultyNum = difficultyMap[q.difficulty] || 3;
+    
+    return {
+      content: q.content,  // ✅ Required: Question text
+      options: optionsArray,  // ✅ Required: Array of strings
+      answer: answerLetter,  // ✅ Required: Single letter
+      explanation: q.explanation || '',  // ✅ Optional: Explanation
+      subject: subjectEnum,  // ✅ Optional: math/physics/chemistry
+      grade: gradeNum,  // ✅ Optional: Integer 7-12
+      difficulty: difficultyNum,  // ✅ Optional: Integer 1-5
+      tags: Array.isArray(q.tags) ? q.tags : [],  // ✅ Optional: Array of strings
+      timer_seconds: q.timer_seconds || 90,  // ✅ Optional: Integer
+      svg_diagram: q.svg_diagram || null,  // ✅ Optional: SVG XML string
+      is_image_question: false  // ✅ Optional: Boolean
+    };
+  });
 
   try {
+    // DEBUG: Log the data we're trying to insert
+    console.log('\n🔍 DEBUG: Attempting to insert the following data:');
+    console.log(JSON.stringify(dbRows[0], null, 2));
+    console.log(`\n📦 Total rows: ${dbRows.length}`);
+    
     // ✅ FIX: Add detailed error logging
     const response = await httpsRequest(`${SUPABASE_URL}/rest/v1/questions`, {
       method: 'POST',
@@ -327,10 +351,17 @@ async function insertToSupabase(questions) {
       }
     }, dbRows);
     
+    // DEBUG: Log the full response
+    console.log('\n📥 DEBUG: Supabase response:');
+    console.log(JSON.stringify(response, null, 2));
+    
     // ✅ FIX: Check for errors in response
-    if (response && response.error) {
-      console.error('❌ Supabase INSERT ERROR:', JSON.stringify(response.error, null, 2));
-      console.error('❌ Failed rows sample:', JSON.stringify(dbRows[0], null, 2));
+    if (response && (response.error || response.code)) {
+      console.error('\n❌ Supabase INSERT ERROR:');
+      console.error('   Code:', response.code);
+      console.error('   Message:', response.message);
+      console.error('   Details:', response.details);
+      console.error('   Hint:', response.hint);
       return 0;
     }
     
