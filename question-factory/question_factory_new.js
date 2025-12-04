@@ -198,6 +198,29 @@ NOW GENERATE 1 QUESTION:
 }
 
 // ==========================================
+// 🔧 JSON EXTRACTION HELPER
+// ==========================================
+function extractJson(rawText) {
+  // Find the first '[' and last ']' to extract JSON array
+  const firstBracket = rawText.indexOf('[');
+  const lastBracket = rawText.lastIndexOf(']');
+  
+  if (firstBracket === -1 || lastBracket === -1) {
+    // Fallback: try to find single object with '{' and '}'
+    const firstBrace = rawText.indexOf('{');
+    const lastBrace = rawText.lastIndexOf('}');
+    
+    if (firstBrace === -1 || lastBrace === -1) {
+      throw new Error('No JSON structure found in response');
+    }
+    
+    return rawText.substring(firstBrace, lastBrace + 1);
+  }
+  
+  return rawText.substring(firstBracket, lastBracket + 1);
+}
+
+// ==========================================
 // 🤖 DEEPSEEK API CALLER
 // ==========================================
 async function callDeepSeekAPI(params) {
@@ -215,7 +238,7 @@ async function callDeepSeekAPI(params) {
       model: 'deepseek-chat',
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.7,
-      max_tokens: 2000
+      max_tokens: 4096  // ✅ INCREASED: 2000 → 4096 to prevent truncation
     });
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -228,19 +251,31 @@ async function callDeepSeekAPI(params) {
     const content = response.choices[0].message.content;
     console.log(`   ⏱️  API Response Time: ${duration}s`);
     
-    // Parse JSON
-    const cleanContent = content.replace(/```json/g, '').replace(/```/g, '').trim();
+    // ✅ ROBUST JSON EXTRACTION: Handle truncated/malformed responses
     let parsed;
     try {
-      parsed = JSON.parse(cleanContent);
+      // Step 1: Remove markdown code blocks
+      const cleanContent = content.replace(/```json/g, '').replace(/```/g, '').trim();
+      
+      // Step 2: Extract JSON using surgical approach
+      const jsonString = extractJson(cleanContent);
+      
+      // Step 3: Parse JSON
+      parsed = JSON.parse(jsonString);
     } catch (e) {
+      // ✅ DEBUG LOGGING: Show exactly what DeepSeek returned
       console.error(`   ❌ JSON Parse Error: ${e.message}`);
+      console.error(`   📄 Raw Output (first 500 chars):`);
+      console.error(content.substring(0, 500));
+      console.error(`   📄 Raw Output (last 200 chars):`);
+      console.error(content.substring(Math.max(0, content.length - 200)));
       return null;
     }
     
     // Validate structure
     if (!parsed.content || !parsed.answer) {
       console.error(`   ❌ Invalid question structure (missing content or answer)`);
+      console.error(`   📋 Parsed Object:`, JSON.stringify(parsed, null, 2));
       return null;
     }
     
