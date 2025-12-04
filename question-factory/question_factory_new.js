@@ -309,9 +309,11 @@ TASK: Generate EXACTLY 3 high-quality ${contextSubject} questions.
 CONTEXT: 
 - Grade: ${gradeNum} (US K-12 Standard)
 - Subject Context: ${contextSubject}
-- Topic: ${params.knowledgePoint}
+- Topic Reference: ${params.knowledgePoint} (This is a reference in Chinese - translate the concept to English in your questions)
 - Difficulty: ${params.difficulty}
 - Type: ${params.questionType} (Strictly adhere to this type)
+
+⚠️ CRITICAL: Even though the Topic Reference may be in Chinese, ALL question content, options, and explanations MUST be written in ACADEMIC ENGLISH.
 
 ${difficultyStandard}
 
@@ -328,12 +330,15 @@ ${GOLDEN_EXAMPLES}
 ### CRITICAL RULES (ZERO TOLERANCE FOR ERRORS):
 1. **OUTPUT FORMAT**: Return ONLY a valid JSON array. NO markdown formatting (no \`\`\`), no greetings.
 
-2. **LANGUAGE CONSTRAINT** ⚠️:
+2. **LANGUAGE CONSTRAINT** ⚠️ (ABSOLUTE REQUIREMENT):
+   - **OUTPUT MUST BE IN ACADEMIC ENGLISH.**
    - The "content", "options", and "explanation" fields MUST be written in **ACADEMIC ENGLISH**.
-   - Do NOT use Chinese in question content, options, or explanations.
+   - Do NOT use Chinese characters in question content, options, or explanations.
+   - Even if the Topic Reference is in Chinese, TRANSLATE the concept to English.
    - ONLY the "tags" field should be Bilingual (English with Chinese translation).
    - Example: Content = "Solve for x: \\\\( 2x + 5 = 15 \\\\)" (✅ English)
    - WRONG: Content = "求解x: \\\\( 2x + 5 = 15 \\\\)" (❌ Chinese)
+   - WRONG: Content = "Solve for x in the equation 函数与方程" (❌ Mixed)
 
 3. **OPTIONS**: 
    - If type is "选择题": Provide exactly 4 options ["A)...", "B)...", "C)...", "D)..."].
@@ -517,10 +522,18 @@ function withTimeout(promise, ms) {
 // 5. 主执行入口 (串行模式 - Sequential Mode)
 // ==========================================
 async function mainSequential() {
-  console.log(`� Starting Sequential Mode (One by One) to ensure stability...`);
+  console.log(`🚀 Starting Sequential Mode (One by One) to ensure stability...`);
   console.log(`📊 Target: Generate ${TARGET_COUNT} questions sequentially`);
   console.log(`⏱️  Timeout per question: ${TASK_TIMEOUT_MS / 1000}s`);
-  console.log(`⏳ Delay between questions: ${DELAY_BETWEEN_QUESTIONS / 1000}s\n`);
+  console.log(`⏳ Delay between questions: ${DELAY_BETWEEN_QUESTIONS / 1000}s`);
+  
+  // ✅ Log TARGET_SUBJECT if present (Matrix Mode verification)
+  if (process.env.TARGET_SUBJECT) {
+    console.log(`🎯 TARGET_SUBJECT: ${process.env.TARGET_SUBJECT} (Matrix Mode Active)`);
+  } else {
+    console.log(`🎲 Random Mode: No TARGET_SUBJECT specified`);
+  }
+  console.log('');
   
   const allQuestions = [];
   let successCount = 0;
