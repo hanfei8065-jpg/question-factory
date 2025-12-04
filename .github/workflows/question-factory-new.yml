@@ -44,7 +44,8 @@ jobs:
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          TARGET_SUBJECT: ${{ matrix.subject }}
         run: |
           echo "🚀 Starting Matrix Job: ${{ matrix.subject }} - Batch ${{ matrix.batch }}"
           echo "=================================================="
