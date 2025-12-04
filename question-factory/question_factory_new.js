@@ -198,26 +198,40 @@ NOW GENERATE 1 QUESTION:
 }
 
 // ==========================================
-// 🔧 JSON EXTRACTION HELPER
+// 🔧 JSON EXTRACTION HELPER (BULLETPROOF)
 // ==========================================
-function extractJson(rawText) {
-  // Find the first '[' and last ']' to extract JSON array
-  const firstBracket = rawText.indexOf('[');
-  const lastBracket = rawText.lastIndexOf(']');
+function extractJson(text) {
+  // 1. Remove Markdown code blocks
+  let clean = text.replace(/```json/g, '').replace(/```/g, '').trim();
   
-  if (firstBracket === -1 || lastBracket === -1) {
-    // Fallback: try to find single object with '{' and '}'
-    const firstBrace = rawText.indexOf('{');
-    const lastBrace = rawText.lastIndexOf('}');
-    
-    if (firstBrace === -1 || lastBrace === -1) {
-      throw new Error('No JSON structure found in response');
-    }
-    
-    return rawText.substring(firstBrace, lastBrace + 1);
+  // 2. Find the first '{' or '['
+  const firstCurly = clean.indexOf('{');
+  const firstSquare = clean.indexOf('[');
+  
+  let start = -1;
+  let end = -1;
+
+  // Determine if it starts with { or [
+  if (firstCurly !== -1 && (firstSquare === -1 || firstCurly < firstSquare)) {
+    start = firstCurly;
+    end = clean.lastIndexOf('}') + 1;
+  } else if (firstSquare !== -1) {
+    start = firstSquare;
+    end = clean.lastIndexOf(']') + 1;
   }
-  
-  return rawText.substring(firstBracket, lastBracket + 1);
+
+  if (start !== -1 && end !== -1) {
+    clean = clean.substring(start, end);
+  }
+
+  try {
+    const parsed = JSON.parse(clean);
+    // 3. Normalize to Array: If it's a single object, wrap it in an array
+    return Array.isArray(parsed) ? parsed : [parsed];
+  } catch (e) {
+    console.error("❌ Failed to parse cleaned JSON:", clean.substring(0, 100) + "...");
+    throw e;
+  }
 }
 
 // ==========================================
@@ -251,17 +265,11 @@ async function callDeepSeekAPI(params) {
     const content = response.choices[0].message.content;
     console.log(`   ⏱️  API Response Time: ${duration}s`);
     
-    // ✅ ROBUST JSON EXTRACTION: Handle truncated/malformed responses
-    let parsed;
+    // ✅ BULLETPROOF JSON EXTRACTION: Handle markdown, single object, and arrays
+    let parsedArray;
     try {
-      // Step 1: Remove markdown code blocks
-      const cleanContent = content.replace(/```json/g, '').replace(/```/g, '').trim();
-      
-      // Step 2: Extract JSON using surgical approach
-      const jsonString = extractJson(cleanContent);
-      
-      // Step 3: Parse JSON
-      parsed = JSON.parse(jsonString);
+      // extractJson now returns an array (single object wrapped or original array)
+      parsedArray = extractJson(content);
     } catch (e) {
       // ✅ DEBUG LOGGING: Show exactly what DeepSeek returned
       console.error(`   ❌ JSON Parse Error: ${e.message}`);
@@ -272,8 +280,11 @@ async function callDeepSeekAPI(params) {
       return null;
     }
     
+    // We expect 1 question, so take the first element
+    const parsed = parsedArray[0];
+    
     // Validate structure
-    if (!parsed.content || !parsed.answer) {
+    if (!parsed || !parsed.content || !parsed.answer) {
       console.error(`   ❌ Invalid question structure (missing content or answer)`);
       console.error(`   📋 Parsed Object:`, JSON.stringify(parsed, null, 2));
       return null;
