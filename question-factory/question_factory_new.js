@@ -91,7 +91,7 @@ function httpsRequest(url, options, data) {
     req.setTimeout(TASK_TIMEOUT_MS);
     req.on('timeout', () => {
       req.destroy();
-      reject(new Error(\`Request timed out after \${TASK_TIMEOUT_MS / 1000}s\`));
+      reject(new Error(`Request timed out after ${TASK_TIMEOUT_MS / 1000}s`));
     });
     if (data) req.write(JSON.stringify(data));
     req.end();
@@ -126,7 +126,7 @@ function generateRandomParams() {
     subject = subjectMap[targetSubject.toLowerCase()];
     
     if (!subject || !knowledgePointsDatabase[subject]) {
-      console.error(\`❌ Invalid TARGET_SUBJECT: \${targetSubject}\`);
+      console.error(`❌ Invalid TARGET_SUBJECT: ${targetSubject}`);
       subject = allSubjects[Math.floor(Math.random() * allSubjects.length)];
     }
   } else {
@@ -159,17 +159,17 @@ function buildPrompt(params) {
   };
   const calculatedTimer = timerMap[params.difficulty] || 90;
   
-  return \`
+  return `
 ROLE: You are an expert US K-12 Curriculum Designer.
 
 TASK: Generate EXACTLY 1 high-quality question.
 
 CONTEXT:
-- Grade: \${gradeNum} (US K-12 Standard)
-- Subject: \${params.subject}
-- Topic: \${params.knowledgePoint}
-- Difficulty: \${params.difficulty}
-- Type: \${params.questionType}
+- Grade: ${gradeNum} (US K-12 Standard)
+- Subject: ${params.subject}
+- Topic: ${params.knowledgePoint}
+- Difficulty: ${params.difficulty}
+- Type: ${params.questionType}
 
 ⚠️ CRITICAL LANGUAGE CONSTRAINT:
 - **OUTPUT MUST BE IN ACADEMIC ENGLISH.**
@@ -180,7 +180,7 @@ RULES:
 1. Return ONLY valid JSON (no markdown, no greetings).
 2. Options: If type is "选择题", provide exactly 4 options ["A)...", "B)...", "C)...", "D)..."]. If "填空题", use empty array [].
 3. Tags: 2-3 bilingual tags like ["Linear Equations (一元一次方程)", "Algebra (代数)"].
-4. Timer: Set "timer_seconds" to \${calculatedTimer}.
+4. Timer: Set "timer_seconds" to ${calculatedTimer}.
 5. LaTeX: Use double backslashes (\\\\\\\\frac{1}{2}, \\\\\\\\sqrt{x}).
 
 JSON STRUCTURE:
@@ -190,11 +190,11 @@ JSON STRUCTURE:
   "answer": "B",
   "explanation": "Step-by-step explanation in English.",
   "tags": ["Linear Equations (一元一次方程)", "Algebra (代数)"],
-  "timer_seconds": \${calculatedTimer}
+  "timer_seconds": ${calculatedTimer}
 }
 
 NOW GENERATE 1 QUESTION:
-\`;
+`;
 }
 
 // ==========================================
@@ -209,7 +209,7 @@ async function callDeepSeekAPI(params) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': \`Bearer \${DEEPSEEK_API_KEY}\`
+        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
       }
     }, {
       model: 'deepseek-chat',
@@ -221,26 +221,26 @@ async function callDeepSeekAPI(params) {
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
     
     if (!response.choices || !response.choices[0]) {
-      console.error(\`   ❌ DeepSeek returned no content (\${duration}s)\`);
+      console.error(`   ❌ DeepSeek returned no content (${duration}s)`);
       return null;
     }
     
     const content = response.choices[0].message.content;
-    console.log(\`   ⏱️  API Response Time: \${duration}s\`);
+    console.log(`   ⏱️  API Response Time: ${duration}s`);
     
     // Parse JSON
-    const cleanContent = content.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
+    const cleanContent = content.replace(/```json/g, '').replace(/```/g, '').trim();
     let parsed;
     try {
       parsed = JSON.parse(cleanContent);
     } catch (e) {
-      console.error(\`   ❌ JSON Parse Error: \${e.message}\`);
+      console.error(`   ❌ JSON Parse Error: ${e.message}`);
       return null;
     }
     
     // Validate structure
     if (!parsed.content || !parsed.answer) {
-      console.error(\`   ❌ Invalid question structure (missing content or answer)\`);
+      console.error(`   ❌ Invalid question structure (missing content or answer)`);
       return null;
     }
     
@@ -260,7 +260,7 @@ async function callDeepSeekAPI(params) {
     
   } catch (err) {
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-    console.error(\`   ❌ API Error (\${duration}s): \${err.message}\`);
+    console.error(`   ❌ API Error (${duration}s): ${err.message}`);
     return null;
   }
 }
@@ -270,32 +270,32 @@ async function callDeepSeekAPI(params) {
 // ==========================================
 async function saveQuestionToSupabase(question) {
   try {
-    const response = await httpsRequest(\`\${SUPABASE_URL}/rest/v1/questions\`, {
+    const response = await httpsRequest(`${SUPABASE_URL}/rest/v1/questions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'apikey': SUPABASE_KEY,
-        'Authorization': \`Bearer \${SUPABASE_KEY}\`,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
         'Prefer': 'return=representation'
       }
     }, question);
 
     // Check for errors
     if (response.code || response.error) {
-      console.error(\`   ❌ Supabase Error: \${response.message || response.error}\`);
+      console.error(`   ❌ Supabase Error: ${response.message || response.error}`);
       return false;
     }
     
     if (Array.isArray(response) && response.length > 0) {
-      console.log(\`   💾 Saved to DB: \${question.subject} - \${question.grade} - \${question.content.substring(0, 50)}...\`);
+      console.log(`   💾 Saved to DB: ${question.subject} - ${question.grade} - ${question.content.substring(0, 50)}...`);
       return true;
     } else {
-      console.error(\`   ❌ Supabase returned unexpected response\`);
+      console.error(`   ❌ Supabase returned unexpected response`);
       return false;
     }
     
   } catch (err) {
-    console.error(\`   ❌ Save Error: \${err.message}\`);
+    console.error(`   ❌ Save Error: ${err.message}`);
     return false;
   }
 }
@@ -304,13 +304,13 @@ async function saveQuestionToSupabase(question) {
 // 🚀 MAIN EXECUTION (ATOMIC MODE)
 // ==========================================
 async function main() {
-  console.log(\`🚀 Starting ATOMIC SAVE Mode (Generate → Save → Next)\`);
-  console.log(\`📊 Target: \${TARGET_COUNT} questions\`);
-  console.log(\`⏱️  Timeout: \${TASK_TIMEOUT_MS / 1000}s per question\`);
-  console.log(\`⏳ Delay: \${DELAY_BETWEEN_QUESTIONS / 1000}s between questions\`);
+  console.log(`🚀 Starting ATOMIC SAVE Mode (Generate → Save → Next)`);
+  console.log(`📊 Target: ${TARGET_COUNT} questions`);
+  console.log(`⏱️  Timeout: ${TASK_TIMEOUT_MS / 1000}s per question`);
+  console.log(`⏳ Delay: ${DELAY_BETWEEN_QUESTIONS / 1000}s between questions`);
   
   if (process.env.TARGET_SUBJECT) {
-    console.log(\`🎯 TARGET_SUBJECT: \${process.env.TARGET_SUBJECT} (Matrix Mode)\`);
+    console.log(`🎯 TARGET_SUBJECT: ${process.env.TARGET_SUBJECT} (Matrix Mode)`);
   }
   console.log('');
   
@@ -319,10 +319,10 @@ async function main() {
   let consecutiveFailures = 0;
 
   for (let i = 1; i <= TARGET_COUNT; i++) {
-    console.log(\`\\n🔄 [\${i}/\${TARGET_COUNT}] Generating question...\`);
+    console.log(`\\n🔄 [${i}/${TARGET_COUNT}] Generating question...`);
     
     const params = generateRandomParams();
-    console.log(\`   📚 \${params.subject} - Grade \${params.grade.replace('grand', '')} - \${params.knowledgePoint}\`);
+    console.log(`   📚 ${params.subject} - Grade ${params.grade.replace('grand', '')} - ${params.knowledgePoint}`);
     
     // ⚡️ STEP 1: Generate ONE question
     const question = await callDeepSeekAPI(params);
@@ -330,13 +330,13 @@ async function main() {
     if (!question) {
       failCount++;
       consecutiveFailures++;
-      console.log(\`   ⚠️  Failed to generate question (\${consecutiveFailures} consecutive failures)\`);
+      console.log(`   ⚠️  Failed to generate question (${consecutiveFailures} consecutive failures)`);
       
       // ❌ CRITICAL: If 3 consecutive failures, CRASH the job
       if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
-        console.error(\`\\n❌ FATAL: \${MAX_CONSECUTIVE_FAILURES} consecutive failures!\`);
-        console.error(\`❌ DeepSeek API may be down or rate-limited.\`);
-        console.error(\`❌ Exiting with error code 1 (GitHub Actions will show RED ❌)\`);
+        console.error(`\\n❌ FATAL: ${MAX_CONSECUTIVE_FAILURES} consecutive failures!`);
+        console.error(`❌ DeepSeek API may be down or rate-limited.`);
+        console.error(`❌ Exiting with error code 1 (GitHub Actions will show RED ❌)`);
         process.exit(1);
       }
       
@@ -350,40 +350,40 @@ async function main() {
     if (saved) {
       successCount++;
       consecutiveFailures = 0; // Reset counter on success
-      console.log(\`   ✅ Success! Total saved: \${successCount}/\${i}\`);
+      console.log(`   ✅ Success! Total saved: ${successCount}/${i}`);
     } else {
       failCount++;
       consecutiveFailures++;
-      console.log(\`   ❌ Failed to save (\${consecutiveFailures} consecutive failures)\`);
+      console.log(`   ❌ Failed to save (${consecutiveFailures} consecutive failures)`);
       
       if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
-        console.error(\`\\n❌ FATAL: \${MAX_CONSECUTIVE_FAILURES} consecutive save failures!\`);
-        console.error(\`❌ Supabase connection may be broken.\`);
+        console.error(`\\n❌ FATAL: ${MAX_CONSECUTIVE_FAILURES} consecutive save failures!`);
+        console.error(`❌ Supabase connection may be broken.`);
         process.exit(1);
       }
     }
     
     // ⚡️ STEP 3: Wait before next question
     if (i < TARGET_COUNT) {
-      console.log(\`   ⏳ Waiting \${DELAY_BETWEEN_QUESTIONS / 1000}s...\`);
+      console.log(`   ⏳ Waiting ${DELAY_BETWEEN_QUESTIONS / 1000}s...`);
       await sleep(DELAY_BETWEEN_QUESTIONS);
     }
   }
 
   // Final Summary
-  console.log(\`\\n📊 ========== FINAL SUMMARY ==========\`);
-  console.log(\`   ✅ Success: \${successCount}/\${TARGET_COUNT}\`);
-  console.log(\`   ❌ Failed: \${failCount}/\${TARGET_COUNT}\`);
-  console.log(\`   💾 Questions in Database: \${successCount}\`);
+  console.log(`\\n📊 ========== FINAL SUMMARY ==========`);
+  console.log(`   ✅ Success: ${successCount}/${TARGET_COUNT}`);
+  console.log(`   ❌ Failed: ${failCount}/${TARGET_COUNT}`);
+  console.log(`   💾 Questions in Database: ${successCount}`);
   
   // ❌ CRITICAL: If NO questions were saved, EXIT WITH ERROR
   if (successCount === 0) {
-    console.error(\`\\n❌ FATAL: No questions were saved to the database!\`);
-    console.error(\`❌ GitHub Actions will show as FAILED ❌\`);
+    console.error(`\\n❌ FATAL: No questions were saved to the database!`);
+    console.error(`❌ GitHub Actions will show as FAILED ❌`);
     process.exit(1);
   }
   
-  console.log(\`\\n✅ Job Complete! Saved \${successCount} questions.\`);
+  console.log(`\\n✅ Job Complete! Saved ${successCount} questions.`);
 }
 
 // Execute
