@@ -2,135 +2,88 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'theme/app_theme.dart';
-import 'pages/app_question_bank_page.dart';
-import 'pages/app_camera_page.dart';
-import 'pages/app_profile_page.dart';
-import 'pages/splash_page.dart'; // ✅ 新增：启动页面
 import 'services/user_progress_service.dart';
 import 'services/translation_service.dart';
+import 'services/theme_service.dart';
+import 'pages/app_home_page.dart';
 
 void main() async {
+  // 1. Critical: Bind Engine
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ✅ 1. Load .env file
-  try {
-    await dotenv.load(fileName: '.env');
-    print('✅ .env loaded successfully');
-  } catch (e) {
-    print('⚠️ Failed to load .env: $e');
-  }
+  // 2. Lock Orientation (Portrait)
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
-  // ✅ 2. Initialize Supabase
-  final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
-  final supabaseKey = dotenv.env['SUPABASE_SERVICE_ROLE_KEY'] ?? '';
+  // 3. Load Env
+  await dotenv.load(fileName: ".env");
 
-  if (supabaseUrl.isNotEmpty && supabaseKey.isNotEmpty) {
-    try {
-      await Supabase.initialize(
-        url: supabaseUrl,
-        anonKey: supabaseKey,
-        debug: true, // 开发模式下显示日志
-      );
-      print('✅ Supabase initialized: $supabaseUrl');
-    } catch (e) {
-      print('❌ Failed to initialize Supabase: $e');
-    }
-  } else {
-    print('⚠️ SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not found in .env');
-  }
+  // 4. Init Supabase
+  await Supabase.initialize(
+    url: dotenv.env['SUPABASE_URL'] ?? '',
+    anonKey: dotenv.env['SUPABASE_SERVICE_ROLE_KEY'] ?? '', // Use what works
+  );
 
-  // 3. Initialize UserProgressService
+  // 5. Init Services (Fixes the "Bad State" crash)
   await UserProgressService().init();
 
-  SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
+  // 6. Init Translation Service (Load JSON)
+  await Tr.init();
+
+  // 7. Init Theme Service
+  await ThemeService.init();
+
+  // 8. Run App
   runApp(const LearnistApp());
 }
 
-class LearnistApp extends StatelessWidget {
+class LearnistApp extends StatefulWidget {
   const LearnistApp({super.key});
 
   @override
+  State<LearnistApp> createState() => _LearnistAppState();
+}
+
+class _LearnistAppState extends State<LearnistApp> {
+  @override
+  void initState() {
+    super.initState();
+    ThemeService.addListener(_onThemeChanged);
+  }
+
+  @override
+  void dispose() {
+    ThemeService.removeListener(_onThemeChanged);
+    super.dispose();
+  }
+
+  void _onThemeChanged() {
+    setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Wrap with ValueListenableBuilder for instant language switching
     return ValueListenableBuilder<String>(
-      valueListenable: Tr.currentLocale,
+      valueListenable: Tr.locale,
       builder: (context, locale, child) {
         return MaterialApp(
           title: 'Learnist.AI',
           debugShowCheckedModeBanner: false,
-          theme: AppTheme.theme, // Using AppTheme with WeChat color standards
-          home: const SplashPage(), // ✅ 启动页面：显示 Logo 2 秒后导航
+          theme: ThemeData(
+            brightness: Brightness.light,
+            primaryColor: const Color(0xFF07C160),
+            scaffoldBackgroundColor: Colors.white,
+            useMaterial3: true,
+          ),
+          darkTheme: ThemeData(
+            brightness: Brightness.dark,
+            primaryColor: const Color(0xFF07C160),
+            scaffoldBackgroundColor: Colors.black,
+            useMaterial3: true,
+          ),
+          themeMode: ThemeService.themeMode,
+          home: const AppHomePage(),
         );
       },
-    );
-  }
-}
-
-class MainNavigator extends StatefulWidget {
-  const MainNavigator({super.key});
-
-  @override
-  State<MainNavigator> createState() => _MainNavigatorState();
-}
-
-class _MainNavigatorState extends State<MainNavigator> {
-  int _currentIndex = 0;
-
-  final List<Widget> _pages = [
-    const AppCameraPage(),
-    const AppQuestionBankPage(),
-    const AppProfilePage(),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: IndexedStack(index: _currentIndex, children: _pages),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: const Color(0xFF07C160),
-        unselectedItemColor: const Color(0xFF191919),
-        selectedLabelStyle: const TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w500,
-        ),
-        unselectedLabelStyle: const TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.normal,
-        ),
-        elevation: 8,
-        items: [
-          BottomNavigationBarItem(
-            icon: Icon(
-              _currentIndex == 0 ? Icons.camera_alt : Icons.camera_alt_outlined,
-              size: 26,
-            ),
-            label: Tr.g('nav_scan'),
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(
-              _currentIndex == 1 ? Icons.menu_book : Icons.menu_book_outlined,
-              size: 26,
-            ),
-            label: Tr.g('nav_arena'),
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(
-              _currentIndex == 2 ? Icons.person : Icons.person_outline,
-              size: 26,
-            ),
-            label: Tr.g('nav_profile'),
-          ),
-        ],
-      ),
     );
   }
 }

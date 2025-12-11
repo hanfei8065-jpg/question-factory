@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/camera_config.dart';
-import '../pages/camera_page.dart';
 import 'edge_detection_overlay.dart';
 
 class CameraOverlay extends StatelessWidget {

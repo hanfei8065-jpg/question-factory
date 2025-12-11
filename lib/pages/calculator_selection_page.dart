@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/theme.dart';
-import '../widgets/braun_calculator.dart'; // 引入枚举 CalculatorVariant
+// import '../widgets/braun_calculator.dart'; // 已删除
 import 'calculator_page.dart'; // 引入刚才创建的全屏计算器
 
 /// 计算器选择页 - 4种高端仿真计算器

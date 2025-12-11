@@ -1,0 +1,57 @@
+{
+  "app_name": "Learnist.AI",
+  "tagline": "See • Sense • Spark",
+  
+  "nav_home": "Inicio",
+  "nav_camera": "Escanear",
+  "nav_explore": "Explorar",
+  "nav_profile": "Perfil",
+  
+  "subjects_math": "Matemáticas",
+  "subjects_physics": "Física",
+  "subjects_chemistry": "Química",
+  "subjects_olympiad": "Olimpiada",
+  
+  "camera_shutter": "Capturar",
+  "camera_album": "Álbum",
+  "camera_flash": "Flash",
+  "camera_retake": "Repetir",
+  
+  "crop_title": "Ajustar Área",
+  "crop_confirm": "Confirmar",
+  "crop_rotate": "Rotar",
+  
+  "solution_title": "Solución",
+  "solution_calculator": "Calculadora",
+  "solution_tools": "Herramientas",
+  "solution_knowledge": "Conceptos",
+  
+  "explore_title": "Banco de Preguntas",
+  "explore_subject": "Materia",
+  "explore_grade": "Grado",
+  "explore_difficulty": "Dificultad",
+  "explore_start": "Comenzar",
+  
+  "focus_title": "Modo Enfoque",
+  "focus_next": "Siguiente",
+  "focus_submit": "Enviar",
+  
+  "summary_title": "Resumen",
+  "summary_correct": "Correctas",
+  "summary_total": "Total",
+  "summary_continue": "Continuar",
+  
+  "profile_title": "Mi Perfil",
+  "profile_streak": "Racha Diaria",
+  "profile_xp": "XP",
+  "profile_rank": "Rango",
+  "profile_learning_report": "Informe de Aprendizaje",
+  "profile_mistake_book": "Libro de Errores",
+  "profile_review_manager": "Gestor de Repaso",
+  "profile_settings": "Configuración",
+  
+  "common_back": "Volver",
+  "common_confirm": "Confirmar",
+  "common_cancel": "Cancelar",
+  "common_loading": "Cargando..."
+}

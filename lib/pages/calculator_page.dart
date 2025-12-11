@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../widgets/braun_calculator.dart';
+import '../widgets/handwriting_canvas.dart'; // ✅ 手写画板
+
+/// 计算器风格
+enum CalculatorVariant {
+  classic, // 经典风格
+  dark, // 深色风格
+  blue, // 蓝色风格
+  gold, // 金色风格
+}
 
 /// 全屏计算器页面
-/// Layout: Display Screen (Top) + Braun Keypad (Bottom)
+/// Layout: HandwritingCanvas (Top 1/3) + Calculator Keypad (Bottom 2/3)
 class CalculatorPage extends StatefulWidget {
   final CalculatorVariant variant;
 
@@ -58,81 +66,131 @@ class _CalculatorPageState extends State<CalculatorPage> {
       ),
       body: Column(
         children: [
-          // 1. 显示屏区域 (Display Screen)
+          // 1. 手写画板 (Top 1/3)
+          Expanded(flex: 1, child: const HandwritingCanvas()),
+
+          // 2. 计算器键盘区域 (Bottom 2/3)
           Expanded(
             flex: 2,
             child: Container(
-              padding: const EdgeInsets.all(32),
-              alignment: Alignment.bottomRight,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  // 历史记录 (Equation)
-                  Text(
-                    _history,
-                    style: TextStyle(
-                      fontSize: 24,
-                      color: textColor.withOpacity(0.6),
-                      fontFamily: 'Courier', // 更有计算器感
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  // 当前结果 (Big Result)
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      _displayValue,
-                      style: TextStyle(
-                        fontSize: 64,
-                        fontWeight: FontWeight.w300,
-                        color: textColor,
-                        height: 1.0,
-                      ),
-                    ),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.black26 : Colors.white,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(24),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, -2),
                   ),
                 ],
               ),
-            ),
-          ),
-
-          // 2. 键盘区域 (Keypad)
-          Expanded(
-            flex: 3,
-            child: Container(
-              decoration: BoxDecoration(
-                color: isDark ? Colors.black26 : Colors.white54,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(32),
-                ),
-              ),
               child: ClipRRect(
                 borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(32),
+                  top: Radius.circular(24),
                 ),
-                child: BraunCalculator(
-                  variant: widget.variant,
-                  isFullScreen: true, // 告诉组件这是全屏模式，不需要缩放
-                  onSubmitAnswer: (value) {
-                    // 全屏模式下，按 '=' 只更新屏幕，不自动返回
-                    // 这里接收组件传回来的计算结果更新 UI
-                    setState(() {
-                      _displayValue = value;
-                    });
-                  },
-                  onHistoryChange: (history) {
-                    setState(() {
-                      _history = history;
-                    });
-                  },
-                ),
+                child: _buildCalculatorKeypad(textColor),
               ),
             ),
           ),
         ],
       ),
     );
+  }
+
+  /// 简单的计算器键盘 (MVP版本)
+  Widget _buildCalculatorKeypad(Color textColor) {
+    return GridView.count(
+      crossAxisCount: 4,
+      padding: const EdgeInsets.all(16),
+      mainAxisSpacing: 12,
+      crossAxisSpacing: 12,
+      children: [
+        // Row 1
+        _buildKey('C', textColor, isOperator: true),
+        _buildKey('÷', textColor, isOperator: true),
+        _buildKey('×', textColor, isOperator: true),
+        _buildKey('⌫', textColor, isOperator: true),
+        // Row 2
+        _buildKey('7', textColor),
+        _buildKey('8', textColor),
+        _buildKey('9', textColor),
+        _buildKey('-', textColor, isOperator: true),
+        // Row 3
+        _buildKey('4', textColor),
+        _buildKey('5', textColor),
+        _buildKey('6', textColor),
+        _buildKey('+', textColor, isOperator: true),
+        // Row 4
+        _buildKey('1', textColor),
+        _buildKey('2', textColor),
+        _buildKey('3', textColor),
+        _buildKey('=', textColor, isOperator: true, isEqual: true),
+        // Row 5 (last row)
+        _buildKey('0', textColor),
+        _buildKey('.', textColor),
+        _buildKey('()', textColor),
+        _buildKey('', textColor), // 空按钮占位
+      ],
+    );
+  }
+
+  Widget _buildKey(
+    String label,
+    Color textColor, {
+    bool isOperator = false,
+    bool isEqual = false,
+  }) {
+    if (label.isEmpty) return const SizedBox.shrink();
+
+    return Material(
+      color: isEqual
+          ? const Color(0xFF07C160) // WeChat Green
+          : isOperator
+          ? Colors.grey.shade300
+          : Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: () => _onKeyTap(label),
+        borderRadius: BorderRadius.circular(12),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: isOperator ? FontWeight.w600 : FontWeight.normal,
+              color: isEqual ? Colors.white : textColor,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _onKeyTap(String key) {
+    // MVP: 简单的显示逻辑
+    setState(() {
+      if (key == 'C') {
+        _displayValue = '0';
+        _history = '';
+      } else if (key == '⌫') {
+        if (_displayValue.length > 1) {
+          _displayValue = _displayValue.substring(0, _displayValue.length - 1);
+        } else {
+          _displayValue = '0';
+        }
+      } else if (key == '=') {
+        // TODO: 实际计算逻辑
+        _history = _displayValue;
+      } else {
+        if (_displayValue == '0') {
+          _displayValue = key;
+        } else {
+          _displayValue += key;
+        }
+      }
+    });
   }
 
   String _getVariantName() {

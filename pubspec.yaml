@@ -21,6 +21,7 @@ dependencies:
   
   # Core Logic
   image_picker: ^1.2.0
+  file_picker: ^8.1.6  # ✅ For PDF selection
   http: ^1.5.0
   provider: ^6.1.5+1
   shared_preferences: ^2.5.3
@@ -34,7 +35,7 @@ dependencies:
   supabase_flutter: ^2.8.0  # ✅ Supabase 集成
   
   # AI & ML
-  google_ml_kit: ^0.16.3
+  # google_ml_kit: ^0.16.3  # ⚠️ TEMPORARILY DISABLED - Too heavy (63 CocoaPods), blocking iOS build
   camera: ^0.11.3
   
   # Math Tools
@@ -69,12 +70,25 @@ dev_dependencies:
   path_provider_platform_interface: ^2.1.2
   build_runner: ^2.4.8
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1  # ✅ App Icon Generator
 
 flutter:
   uses-material-design: true
-  generate: true
+  # generate: true  # ❌ DISABLED - We use custom Tr class, not .arb files
   assets:
     - .env
     - assets/images/
     - assets/images/robot/
     - assets/test_images/
+    - assets/vi_system/  # ✅ Learnist VI Visual Identity System
+    - assets/i18n/  # ✅ Language JSON files (en/zh/es/ja)
+
+# ✅ Launcher Icon Configuration
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/logo.png"
+  adaptive_icon_background: "#07C160"  # WeChat Green
+  adaptive_icon_foreground: "assets/images/logo.png"
+  min_sdk_android: 21  # Android 5.0+
+  remove_alpha_ios: true  # ✅ Remove alpha channel for App Store compliance

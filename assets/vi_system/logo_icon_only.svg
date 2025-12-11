@@ -1,0 +1,39 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Icon Only: Natural Sign Symbol (App Icon) -->
+  <circle cx="256" cy="256" r="256" fill="#4A9B88"/>
+  
+  <!-- Natural Sign Symbol -->
+  <g transform="translate(256, 256)">
+    <!-- Left long slanted bar -->
+    <line x1="-60" y1="120" x2="-35" y2="-120" 
+          stroke="white" stroke-width="22" 
+          stroke-linecap="round"/>
+    <line x1="-60" y1="120" x2="-35" y2="-120" 
+          stroke="white" stroke-width="30" 
+          opacity="0.3" stroke-linecap="round"/>
+    
+    <!-- Right long slanted bar -->
+    <line x1="35" y1="120" x2="60" y2="-120" 
+          stroke="white" stroke-width="22" 
+          stroke-linecap="round"/>
+    <line x1="35" y1="120" x2="60" y2="-120" 
+          stroke="white" stroke-width="30" 
+          opacity="0.3" stroke-linecap="round"/>
+    
+    <!-- Top horizontal bar -->
+    <line x1="-70" y1="-42" x2="70" y2="-42" 
+          stroke="white" stroke-width="20" 
+          stroke-linecap="round"/>
+    <line x1="-70" y1="-42" x2="70" y2="-42" 
+          stroke="white" stroke-width="26" 
+          opacity="0.3" stroke-linecap="round"/>
+    
+    <!-- Bottom horizontal bar -->
+    <line x1="-70" y1="42" x2="70" y2="42" 
+          stroke="white" stroke-width="20" 
+          stroke-linecap="round"/>
+    <line x1="-70" y1="42" x2="70" y2="42" 
+          stroke="white" stroke-width="26" 
+          opacity="0.3" stroke-linecap="round"/>
+  </g>
+</svg>

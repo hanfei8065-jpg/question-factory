@@ -1,7 +1,4 @@
 enum CameraState {
-  /// 关闭（黑屏）状态
-  closed,
-
   /// 初始化中
   initializing,
 

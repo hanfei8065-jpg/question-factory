@@ -2,10 +2,9 @@ import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'camera/camera_painters.dart';
-import 'solving_page.dart';
-import '../widgets/onboarding_overlay.dart';
+import 'app_solution_page.dart';
 import '../services/translation_service.dart';
 
 enum _CropHandle { topLeft, topRight, bottomLeft, bottomRight, center }
@@ -25,12 +24,11 @@ class _AppCameraPageState extends State<AppCameraPage>
   late Animation<double> _breachAnimation;
 
   int _selectedSubjectIndex = 0;
-  bool _isCameraActive = false;
+  bool _isCameraActive = true; // 🔥 直接激活相机
   bool _isFlashOn = false;
   CameraController? _cameraController;
   bool _isCameraInitialized = false;
   String? _cameraError; // Camera error message
-  bool _showOnboarding = false; // FRE overlay state
 
   // Crop view state
   String? _capturedImagePath;
@@ -66,54 +64,22 @@ class _AppCameraPageState extends State<AppCameraPage>
     );
 
     _initializeCamera();
-    _checkOnboarding(); // Check if first run
-  }
-
-  /// Check if user has seen onboarding (First Run Experience)
-  Future<void> _checkOnboarding() async {
-    final prefs = await SharedPreferences.getInstance();
-    final hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
-
-    if (!hasSeenOnboarding) {
-      // Show onboarding after a short delay (let UI settle)
-      await Future.delayed(const Duration(milliseconds: 500));
-      if (mounted) {
-        setState(() {
-          _showOnboarding = true;
-        });
-      }
-    }
-  }
-
-  /// Complete onboarding and save flag
-  Future<void> _completeOnboarding() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('hasSeenOnboarding', true);
-
-    if (mounted) {
-      setState(() {
-        _showOnboarding = false;
-      });
-    }
-  }
-
-  /// Reset onboarding flag (for testing)
-  Future<void> _resetOnboarding() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('hasSeenOnboarding', false);
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Onboarding reset! Restart app to see it again.'),
-          backgroundColor: Color(0xFF07C160),
-        ),
-      );
-    }
+    // 🔥 直接激活相机动画
+    _breachController.forward();
+    // ❌ Onboarding removed per user request
   }
 
   Future<void> _initializeCamera() async {
     try {
+      // Request camera permission first
+      final status = await Permission.camera.request();
+      if (!status.isGranted) {
+        setState(() {
+          _cameraError = 'Camera permission denied';
+        });
+        return;
+      }
+
       final cameras = await availableCameras();
       if (cameras.isEmpty) {
         setState(() {
@@ -121,6 +87,9 @@ class _AppCameraPageState extends State<AppCameraPage>
         });
         return;
       }
+
+      // Dispose old controller if exists
+      await _cameraController?.dispose();
 
       _cameraController = CameraController(
         cameras.first,
@@ -139,7 +108,7 @@ class _AppCameraPageState extends State<AppCameraPage>
       debugPrint('Camera initialization error: $e');
       if (mounted) {
         setState(() {
-          _cameraError = Tr.g('home_camera_error');
+          _cameraError = 'Camera error: ${e.toString()}';
         });
       }
     }
@@ -176,16 +145,23 @@ class _AppCameraPageState extends State<AppCameraPage>
       try {
         final image = await _cameraController!.takePicture();
 
-        // Initialize crop rect (centered, 85% width, 16:9 aspect)
+        // Initialize crop rect (large box, slightly smaller than screen edges)
         final screenSize = MediaQuery.of(context).size;
-        final cropWidth = screenSize.width * 0.85;
-        final cropHeight = cropWidth * 9 / 16;
+        final margin = 40.0; // 40px margin from edges
+        final cropWidth = screenSize.width - (margin * 2);
+        final cropHeight =
+            screenSize.height -
+            (margin * 2) -
+            200; // Extra space for bottom controls
 
         setState(() {
           _capturedImagePath = image.path;
           _rotationCount = 0;
           _cropRect = Rect.fromCenter(
-            center: Offset(screenSize.width / 2, screenSize.height / 2),
+            center: Offset(
+              screenSize.width / 2,
+              (screenSize.height - 100) / 2,
+            ), // Center vertically with offset for controls
             width: cropWidth,
             height: cropHeight,
           );
@@ -214,22 +190,20 @@ class _AppCameraPageState extends State<AppCameraPage>
   void _onSolveTap() {
     if (_capturedImagePath == null) return;
 
-    // Navigate to SolvingPage
+    // Navigate to SolvingPage with captured image
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => SolvingPage(
-          imagePath: _capturedImagePath!,
-          rotationCount: _rotationCount,
-        ),
+        builder: (context) => SolvingPage(imagePath: _capturedImagePath!),
       ),
     );
   }
 
   _CropHandle? _detectHandle(Offset position, Rect cropRect) {
-    const double touchRadius = 40; // Touch area for corners
+    const double touchRadius = 40.0; // Increased hit area for easy grabbing
 
     // Check corners first (priority over center)
+    // Using distance check for precise corner detection
     if ((position - cropRect.topLeft).distance < touchRadius) {
       return _CropHandle.topLeft;
     }
@@ -262,13 +236,13 @@ class _AppCameraPageState extends State<AppCameraPage>
   void _onCropPanUpdate(DragUpdateDetails details, Size screenSize) {
     if (_cropRect == null || _activeHandle == null) return;
 
-    const double minSize = 100;
+    const double minSize = 100.0; // Minimum crop box size
     final delta = details.delta;
 
     setState(() {
       switch (_activeHandle!) {
         case _CropHandle.center:
-          // Move entire crop box
+          // Move entire crop box (keeping size constant)
           double newLeft = (_cropRect!.left + delta.dx).clamp(
             0.0,
             screenSize.width - _cropRect!.width,
@@ -286,7 +260,7 @@ class _AppCameraPageState extends State<AppCameraPage>
           break;
 
         case _CropHandle.topLeft:
-          // Resize from top-left
+          // Resize from top-left corner (adjust left and top edges)
           double newLeft = (_cropRect!.left + delta.dx).clamp(
             0.0,
             _cropRect!.right - minSize,
@@ -304,7 +278,7 @@ class _AppCameraPageState extends State<AppCameraPage>
           break;
 
         case _CropHandle.topRight:
-          // Resize from top-right
+          // Resize from top-right corner (adjust right and top edges)
           double newRight = (_cropRect!.right + delta.dx).clamp(
             _cropRect!.left + minSize,
             screenSize.width,
@@ -322,7 +296,7 @@ class _AppCameraPageState extends State<AppCameraPage>
           break;
 
         case _CropHandle.bottomLeft:
-          // Resize from bottom-left
+          // Resize from bottom-left corner (adjust left and bottom edges)
           double newLeft = (_cropRect!.left + delta.dx).clamp(
             0.0,
             _cropRect!.right - minSize,
@@ -340,7 +314,7 @@ class _AppCameraPageState extends State<AppCameraPage>
           break;
 
         case _CropHandle.bottomRight:
-          // Resize from bottom-right
+          // Resize from bottom-right corner (adjust right and bottom edges)
           double newRight = (_cropRect!.right + delta.dx).clamp(
             _cropRect!.left + minSize,
             screenSize.width,
@@ -661,7 +635,7 @@ class _AppCameraPageState extends State<AppCameraPage>
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                               ),
-                              child: Text(Tr.g('home_retry_camera')),
+                              child: Text(Tr.get('home_retry_camera')),
                             ),
                           ],
                         ),
@@ -698,7 +672,80 @@ class _AppCameraPageState extends State<AppCameraPage>
               // Sniper Crosshair (active mode only)
               if (_isCameraActive)
                 Positioned.fill(
-                  child: CustomPaint(painter: SniperCrosshairPainter()),
+                  child: CustomPaint(
+                    painter: SniperCrosshairPainter(screenSize: screenSize),
+                  ),
+                ),
+
+              // 🔥 相机激活时的控件
+              if (_isCameraActive)
+                SafeArea(
+                  child: Column(
+                    children: [
+                      // 顶部返回按钮
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(
+                                Icons.arrow_back,
+                                color: Colors.white,
+                                size: 28,
+                              ),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Spacer(),
+                      // 底部拍摄按钮
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 40),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            // 闪光灯
+                            IconButton(
+                              icon: Icon(
+                                _isFlashOn ? Icons.flash_on : Icons.flash_off,
+                                color: Colors.white,
+                                size: 32,
+                              ),
+                              onPressed: _onFlashTap,
+                            ),
+                            // 拍摄按钮
+                            GestureDetector(
+                              onTap: _onShutterTap,
+                              child: Container(
+                                width: 72,
+                                height: 72,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 4,
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Container(
+                                    width: 60,
+                                    height: 60,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // 占位
+                            const SizedBox(width: 48),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
 
               // Layer A: Top Bar Icons (hide in active mode)
@@ -724,7 +771,7 @@ class _AppCameraPageState extends State<AppCameraPage>
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                Tr.g('home_promo'),
+                                Tr.get('home_promo'),
                                 style: const TextStyle(
                                   fontSize: 10,
                                   color: orange,
@@ -734,79 +781,7 @@ class _AppCameraPageState extends State<AppCameraPage>
                             ],
                           ),
                         ),
-                        // Language Switcher
-                        PopupMenuButton<String>(
-                          onSelected: (locale) => Tr.setLocale(locale),
-                          itemBuilder: (context) => [
-                            PopupMenuItem(
-                              value: 'zh',
-                              child: Row(
-                                children: [
-                                  Text(
-                                    Tr.getFlag('zh'),
-                                    style: const TextStyle(fontSize: 20),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Text('中文'),
-                                ],
-                              ),
-                            ),
-                            PopupMenuItem(
-                              value: 'en',
-                              child: Row(
-                                children: [
-                                  Text(
-                                    Tr.getFlag('en'),
-                                    style: const TextStyle(fontSize: 20),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Text('English'),
-                                ],
-                              ),
-                            ),
-                            PopupMenuItem(
-                              value: 'ja',
-                              child: Row(
-                                children: [
-                                  Text(
-                                    Tr.getFlag('ja'),
-                                    style: const TextStyle(fontSize: 20),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Text('日本語'),
-                                ],
-                              ),
-                            ),
-                            PopupMenuItem(
-                              value: 'es',
-                              child: Row(
-                                children: [
-                                  Text(
-                                    Tr.getFlag('es'),
-                                    style: const TextStyle(fontSize: 20),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Text('Español'),
-                                ],
-                              ),
-                            ),
-                          ],
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                Tr.getFlag(Tr.currentLocale.value),
-                                style: const TextStyle(fontSize: 24),
-                              ),
-                              const SizedBox(height: 2),
-                              const Icon(
-                                Icons.arrow_drop_down,
-                                color: darkGrey,
-                                size: 16,
-                              ),
-                            ],
-                          ),
-                        ),
+                        // Calculator Icon (Language Switcher removed for clean UI)
                         GestureDetector(
                           onTap: _onCalculatorTap,
                           child: Column(
@@ -819,7 +794,7 @@ class _AppCameraPageState extends State<AppCameraPage>
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                Tr.g('home_calc'),
+                                Tr.get('home_calc'),
                                 style: const TextStyle(
                                   fontSize: 10,
                                   color: darkGrey,
@@ -841,39 +816,9 @@ class _AppCameraPageState extends State<AppCameraPage>
                   right: 0,
                   top: screenSize.height * 0.35,
                   child: Center(
-                    child: GestureDetector(
-                      onLongPress: () {
-                        // Debug: Reset onboarding
-                        showDialog(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            title: const Text('Reset Onboarding?'),
-                            content: const Text(
-                              'This will reset the First Run Experience. You\'ll need to restart the app to see it again.',
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(ctx),
-                                child: const Text('Cancel'),
-                              ),
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.pop(ctx);
-                                  _resetOnboarding();
-                                },
-                                style: TextButton.styleFrom(
-                                  foregroundColor: const Color(0xFF07C160),
-                                ),
-                                child: const Text('Reset'),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                      child: ScaleTransition(
-                        scale: _breathingAnimation,
-                        child: const SizedBox(width: 120, height: 120),
-                      ),
+                    child: ScaleTransition(
+                      scale: _breathingAnimation,
+                      child: const SizedBox(width: 120, height: 120),
                     ),
                   ),
                 ),
@@ -889,7 +834,7 @@ class _AppCameraPageState extends State<AppCameraPage>
                     // Subject Slider (hide in active mode)
                     if (!_isCameraActive)
                       SizedBox(
-                        height: 40,
+                        height: 50,
                         child: ListView.builder(
                           scrollDirection: Axis.horizontal,
                           itemCount: _subjects.length,
@@ -937,100 +882,90 @@ class _AppCameraPageState extends State<AppCameraPage>
                       ),
                     if (!_isCameraActive) const SizedBox(height: 32),
 
-                    // Action Buttons
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 40),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          // Import
-                          GestureDetector(
-                            onTap: _onImportTap,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.image_outlined,
-                                  color: _isCameraActive
-                                      ? Colors.white
-                                      : darkGrey,
-                                  size: 28,
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  Tr.g('home_import'),
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: _isCameraActive
-                                        ? Colors.white
-                                        : darkGrey,
+                    // Action Buttons (hide when camera is active)
+                    Visibility(
+                      visible: !_isCameraActive,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 40),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            // Import
+                            GestureDetector(
+                              onTap: _onImportTap,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.image_outlined,
+                                    color: darkGrey,
+                                    size: 28,
                                   ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          // Shutter
-                          GestureDetector(
-                            onTap: _onShutterTap,
-                            child: Container(
-                              width: 64,
-                              height: 64,
-                              decoration: BoxDecoration(
-                                color: _isCameraActive
-                                    ? Colors.transparent
-                                    : wechatGreen,
-                                shape: BoxShape.circle,
-                                border: _isCameraActive
-                                    ? Border.all(color: Colors.white, width: 3)
-                                    : null,
-                                boxShadow: _isCameraActive
-                                    ? null
-                                    : const [
-                                        BoxShadow(
-                                          color: Color(0x3307C160),
-                                          blurRadius: 12,
-                                          offset: Offset(0, 4),
-                                        ),
-                                      ],
-                              ),
-                              child: Icon(
-                                Icons.camera_alt,
-                                color: Colors.white,
-                                size: 28,
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    Tr.get('home_import'),
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      color: darkGrey,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ),
 
-                          // Flash
-                          GestureDetector(
-                            onTap: _onFlashTap,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  _isFlashOn
-                                      ? Icons.flashlight_on
-                                      : Icons.flashlight_on_outlined,
-                                  color: _isCameraActive
-                                      ? Colors.white
-                                      : darkGrey,
+                            // Shutter
+                            GestureDetector(
+                              onTap: _onShutterTap,
+                              child: Container(
+                                width: 64,
+                                height: 64,
+                                decoration: const BoxDecoration(
+                                  color: wechatGreen,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Color(0x3307C160),
+                                      blurRadius: 12,
+                                      offset: Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: const Icon(
+                                  Icons.camera_alt,
+                                  color: Colors.white,
                                   size: 28,
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  Tr.g('home_flash'),
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: _isCameraActive
-                                        ? Colors.white
-                                        : darkGrey,
-                                  ),
-                                ),
-                              ],
+                              ),
                             ),
-                          ),
-                        ],
+
+                            // Flash
+                            GestureDetector(
+                              onTap: _onFlashTap,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    _isFlashOn
+                                        ? Icons.flashlight_on
+                                        : Icons.flashlight_on_outlined,
+                                    color: darkGrey,
+                                    size: 28,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    Tr.get('home_flash'),
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: _isCameraActive
+                                          ? Colors.white
+                                          : darkGrey,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -1039,15 +974,7 @@ class _AppCameraPageState extends State<AppCameraPage>
             ],
           ),
         ),
-
-        // Onboarding Overlay (First Run Experience)
-        if (_showOnboarding)
-          Positioned.fill(
-            child: OnboardingOverlay(
-              onComplete: _completeOnboarding,
-              screenSize: screenSize,
-            ),
-          ),
+        // ❌ Onboarding overlay removed per user request
       ],
     );
   }

@@ -1,0 +1,57 @@
+{
+  "app_name": "Learnist.AI",
+  "tagline": "See • Sense • Spark",
+  
+  "nav_home": "ホーム",
+  "nav_camera": "スキャン",
+  "nav_explore": "問題集",
+  "nav_profile": "プロフィール",
+  
+  "subjects_math": "数学",
+  "subjects_physics": "物理",
+  "subjects_chemistry": "化学",
+  "subjects_olympiad": "オリンピック",
+  
+  "camera_shutter": "撮影",
+  "camera_album": "アルバム",
+  "camera_flash": "フラッシュ",
+  "camera_retake": "再撮影",
+  
+  "crop_title": "トリミング調整",
+  "crop_confirm": "確認",
+  "crop_rotate": "回転",
+  
+  "solution_title": "解答",
+  "solution_calculator": "電卓",
+  "solution_tools": "ツール",
+  "solution_knowledge": "知識ポイント",
+  
+  "explore_title": "問題バンク",
+  "explore_subject": "科目",
+  "explore_grade": "学年",
+  "explore_difficulty": "難易度",
+  "explore_start": "練習開始",
+  
+  "focus_title": "集中モード",
+  "focus_next": "次へ",
+  "focus_submit": "提出",
+  
+  "summary_title": "セッション要約",
+  "summary_correct": "正解",
+  "summary_total": "合計",
+  "summary_continue": "続ける",
+  
+  "profile_title": "マイプロフィール",
+  "profile_streak": "連続日数",
+  "profile_xp": "経験値",
+  "profile_rank": "ランク",
+  "profile_learning_report": "学習レポート",
+  "profile_mistake_book": "間違いノート",
+  "profile_review_manager": "復習マネージャー",
+  "profile_settings": "設定",
+  
+  "common_back": "戻る",
+  "common_confirm": "確認",
+  "common_cancel": "キャンセル",
+  "common_loading": "読み込み中..."
+}

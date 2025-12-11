@@ -5,64 +5,6 @@ enum Subject { math, physics, chemistry }
 
 enum QuestionType { choice, fill, application }
 
-// 标签枚举（可用于下拉选择/录入校验）
-class TagEnum {
-  static const List<String> mathTags = [
-    '代数',
-    '几何',
-    '函数',
-    '三角',
-    '概率',
-    '统计',
-    '数列',
-    '方程',
-    '图形',
-    '应用题',
-    '奥数',
-  ];
-  static const List<String> physicsTags = [
-    '力学',
-    '电学',
-    '光学',
-    '热学',
-    '声学',
-    '运动',
-    '能量',
-    '实验',
-    '公式推导',
-  ];
-  static const List<String> chemistryTags = [
-    '元素',
-    '化学反应',
-    '物质结构',
-    '实验',
-    '化学方程式',
-    '周期表',
-    '溶液',
-    '酸碱盐',
-  ];
-  static const List<String> commonTypes = [
-    '选择',
-    '填空',
-    '应用',
-    '拖拽',
-    '连线',
-    '实验设计',
-    '计算',
-    '证明',
-    '推理',
-  ];
-  static const List<String> difficultyTags = ['初级', '中级', '高级', '竞赛'];
-  static List<String> gradeTags = List.generate(12, (i) => '${i + 1}年级');
-}
-
-// 题目录入/生成时强制选择标签校验
-bool validateQuestionTags(Question q) {
-  if (q.tags.isEmpty) return false;
-  // 可扩展：校验 tags 是否包含学科、年级、题型、知识点、难度等枚举值
-  return true;
-}
-
 class Question {
   final String id;
   final String content; // 支持 LaTeX
@@ -77,7 +19,6 @@ class Question {
   final QuestionSolution? solution;
   final String? imagePath; // 图片路径
   final bool isImageQuestion; // 是否为图片题
-  final int? timerSeconds; // ✅ 新增：答题倒计时（秒），null=不限时
 
   Question({
     required this.id,
@@ -93,7 +34,6 @@ class Question {
     this.solution,
     this.imagePath,
     this.isImageQuestion = false,
-    this.timerSeconds, // ✅ 新增
   });
 
   Map<String, dynamic> toJson() {
@@ -110,7 +50,6 @@ class Question {
       'tags': tags,
       'imagePath': imagePath,
       'isImageQuestion': isImageQuestion,
-      'timer_seconds': timerSeconds, // ✅ 新增：使用下划线命名（匹配后端）
       if (solution != null) 'solution': solution!.toJson(),
     };
   }
@@ -133,7 +72,6 @@ class Question {
       tags: List<String>.from(json['tags']),
       imagePath: json['imagePath'] as String?,
       isImageQuestion: json['isImageQuestion'] as bool? ?? false,
-      timerSeconds: json['timer_seconds'] as int?, // ✅ 新增：解析倒计时字段
       solution: json['solution'] != null
           ? QuestionSolution.fromJson(json['solution'] as Map<String, dynamic>)
           : null,
@@ -154,7 +92,6 @@ class Question {
     QuestionSolution? solution,
     String? imagePath,
     bool? isImageQuestion,
-    int? timerSeconds, // ✅ 新增
   }) {
     return Question(
       id: id ?? this.id,
@@ -170,7 +107,6 @@ class Question {
       solution: solution ?? this.solution,
       imagePath: imagePath ?? this.imagePath,
       isImageQuestion: isImageQuestion ?? this.isImageQuestion,
-      timerSeconds: timerSeconds ?? this.timerSeconds, // ✅ 新增
     );
   }
 

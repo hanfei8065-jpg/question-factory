@@ -1,0 +1,20 @@
+<svg width="2124" height="310" viewBox="0 0 2124 310" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Learnist.AI LOGO - 基于截图设计 -->
+  <g id="LearnistAI_Logo_Primary">
+    <!-- 左侧斜杠符号 /=/  -->
+    <!-- 第一个斜杠 / -->
+    <path d="M80 230 L160 80" stroke="#1E3A5F" stroke-width="24" stroke-linecap="round" fill="none"/>
+    <!-- 等号上横 -->
+    <path d="M180 130 L240 130" stroke="#1E3A5F" stroke-width="18" stroke-linecap="round" fill="none"/>
+    <!-- 等号下横 -->
+    <path d="M180 180 L240 180" stroke="#1E3A5F" stroke-width="18" stroke-linecap="round" fill="none"/>
+    <!-- 第二个斜杠 / -->
+    <path d="M260 230 L340 80" stroke="#1E3A5F" stroke-width="24" stroke-linecap="round" fill="none"/>
+
+    <!-- Learnist.AI 主文字 -->
+    <text x="400" y="195" font-family="Inter, -apple-system, sans-serif" font-weight="700" font-size="140" fill="#1E3A5F" letter-spacing="-2">Learnist.AI</text>
+    
+    <!-- See • Sense • Spark 副标题 -->
+    <text x="400" y="260" font-family="Inter, -apple-system, sans-serif" font-weight="400" font-size="40" fill="#1E3A5F" letter-spacing="1">See • Sense • Spark</text>
+  </g>
+</svg>

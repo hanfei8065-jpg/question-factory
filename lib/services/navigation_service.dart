@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:learnest_fresh/core/constants.dart';
 import 'package:learnest_fresh/models/question.dart';
-import 'package:learnest_fresh/models/world.dart';
-import 'package:learnest_fresh/pages/question_bank_page.dart';
-import 'package:learnest_fresh/pages/ai_teacher_page.dart';
-import 'package:learnest_fresh/pages/question_result_page.dart';
-import 'package:learnest_fresh/pages/camera_page.dart';
+import 'package:learnest_fresh/pages/app_explore_setup_page.dart';
+// import 'package:learnest_fresh/pages/question_result_page.dart'; // DELETED
+import 'package:learnest_fresh/pages/app_camera_page.dart';
 import 'package:learnest_fresh/pages/calculator_page.dart';
-import 'package:learnest_fresh/pages/mistake_book_page.dart';
+import 'package:learnest_fresh/pages/app_mistake_book_page.dart';
 
 class NavigationService {
   static final NavigationService _instance = NavigationService._internal();
@@ -112,42 +110,24 @@ class NavigationService {
   static Route<dynamic>? onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
       case '/question-bank':
-        final args = settings.arguments as Map<String, dynamic>;
-        return MaterialPageRoute(
-          builder: (_) => QuestionBankPage(
-            topic: args['topic'] as String,
-            message: args['message'] as String?,
-            level: args['level'] as int?,
-          ),
-        );
+        return MaterialPageRoute(builder: (_) => const AppQuestionBankPage());
 
       case '/ai-teacher':
-        final args = settings.arguments as Map<String, dynamic>;
-        return MaterialPageRoute(
-          builder: (_) => AITeacherPage(
-            question: args['question'] as Question,
-            difficulty: args['difficulty'] as String,
-          ),
-        );
+        // Redirect to question bank for now (AI Teacher removed)
+        return MaterialPageRoute(builder: (_) => const AppQuestionBankPage());
 
       case '/question-result':
-        final args = settings.arguments as Map<String, dynamic>;
-        return MaterialPageRoute(
-          builder: (_) => QuestionResultPage(
-            isCorrect: args['isCorrect'] as bool,
-            question: args['question'] as String,
-            answer: args['answer'] as String,
-            explanation: args['explanation'] as String,
-            subject: args['subject'] as String? ?? '未知科目',
-            difficulty: args['difficulty'] as String? ?? '未知难度',
-          ),
-        );
+        // DELETED: QuestionResultPage
+        throw UnimplementedError('Question result page not implemented');
 
       case '/camera':
-        return MaterialPageRoute(builder: (_) => const CameraPage());
+        return MaterialPageRoute(builder: (_) => const AppCameraPage());
 
       case '/calculator':
-        return MaterialPageRoute(builder: (_) => const CalculatorPage());
+        return MaterialPageRoute(
+          builder: (_) =>
+              const CalculatorPage(variant: CalculatorVariant.classic),
+        );
 
       case '/mistake-book':
         return MaterialPageRoute(builder: (_) => const MistakeBookPage());

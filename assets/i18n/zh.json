@@ -1,0 +1,57 @@
+{
+  "app_name": "Learnist.AI",
+  "tagline": "See • Sense • Spark",
+  
+  "nav_home": "首页",
+  "nav_camera": "拍题",
+  "nav_explore": "题库",
+  "nav_profile": "我的",
+  
+  "subjects_math": "数学",
+  "subjects_physics": "物理",
+  "subjects_chemistry": "化学",
+  "subjects_olympiad": "奥数",
+  
+  "camera_shutter": "拍照",
+  "camera_album": "相册",
+  "camera_flash": "闪光灯",
+  "camera_retake": "重拍",
+  
+  "crop_title": "调整裁剪区域",
+  "crop_confirm": "确认",
+  "crop_rotate": "旋转",
+  
+  "solution_title": "解题",
+  "solution_calculator": "计算器",
+  "solution_tools": "工具箱",
+  "solution_knowledge": "知识点",
+  
+  "explore_title": "题库",
+  "explore_subject": "学科",
+  "explore_grade": "年级",
+  "explore_difficulty": "难度",
+  "explore_start": "开始练习",
+  
+  "focus_title": "专注模式",
+  "focus_next": "下一题",
+  "focus_submit": "提交",
+  
+  "summary_title": "本次总结",
+  "summary_correct": "正确",
+  "summary_total": "总计",
+  "summary_continue": "继续",
+  
+  "profile_title": "个人中心",
+  "profile_streak": "连续天数",
+  "profile_xp": "经验值",
+  "profile_rank": "排名",
+  "profile_learning_report": "学习报告",
+  "profile_mistake_book": "错题本",
+  "profile_review_manager": "复习管理",
+  "profile_settings": "设置",
+  
+  "common_back": "返回",
+  "common_confirm": "确认",
+  "common_cancel": "取消",
+  "common_loading": "加载中..."
+}

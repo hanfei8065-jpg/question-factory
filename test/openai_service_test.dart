@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:learnest_fresh/services/openai_service.dart';
+import 'package:learnest_fresh/services/ai_service.dart'; // ✅ Updated
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 
 class FakePathProviderPlatform extends PathProviderPlatform {
@@ -40,8 +40,8 @@ void main() {
     await dotenv.load(fileName: '.env');
   });
 
-  test('OpenAI Vision API Test', () async {
-    final service = OpenAIService();
+  test('AI Service (DeepSeek) Vision API Test', () async {
+    final service = AIService(); // ✅ Updated
 
     // 创建测试图片路径（我们需要先创建一个测试图片）
     final testImage = File('test/test_assets/math_question.jpg');

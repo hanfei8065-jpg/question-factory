@@ -1,0 +1,57 @@
+{
+  "app_name": "Learnist.AI",
+  "tagline": "See • Sense • Spark",
+  
+  "nav_home": "Home",
+  "nav_camera": "Scan",
+  "nav_explore": "Explore",
+  "nav_profile": "Profile",
+  
+  "subjects_math": "Math",
+  "subjects_physics": "Physics",
+  "subjects_chemistry": "Chemistry",
+  "subjects_olympiad": "Olympiad",
+  
+  "camera_shutter": "Capture",
+  "camera_album": "Album",
+  "camera_flash": "Flash",
+  "camera_retake": "Retake",
+  
+  "crop_title": "Adjust Crop Area",
+  "crop_confirm": "Confirm",
+  "crop_rotate": "Rotate",
+  
+  "solution_title": "Solution",
+  "solution_calculator": "Calculator",
+  "solution_tools": "Tools",
+  "solution_knowledge": "Knowledge Points",
+  
+  "explore_title": "Question Bank",
+  "explore_subject": "Subject",
+  "explore_grade": "Grade",
+  "explore_difficulty": "Difficulty",
+  "explore_start": "Start Practice",
+  
+  "focus_title": "Focus Mode",
+  "focus_next": "Next",
+  "focus_submit": "Submit",
+  
+  "summary_title": "Session Summary",
+  "summary_correct": "Correct",
+  "summary_total": "Total",
+  "summary_continue": "Continue",
+  
+  "profile_title": "My Profile",
+  "profile_streak": "Day Streak",
+  "profile_xp": "XP",
+  "profile_rank": "Rank",
+  "profile_learning_report": "Learning Report",
+  "profile_mistake_book": "Mistake Book",
+  "profile_review_manager": "Review Manager",
+  "profile_settings": "Settings",
+  
+  "common_back": "Back",
+  "common_confirm": "Confirm",
+  "common_cancel": "Cancel",
+  "common_loading": "Loading..."
+}

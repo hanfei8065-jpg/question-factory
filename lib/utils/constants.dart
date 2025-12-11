@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 // 核心主题
 enum Subject { math, physics, chemistry }
 

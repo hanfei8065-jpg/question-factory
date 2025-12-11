@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:learnest_fresh/pages/camera_page.dart';
-import 'package:learnest_fresh/pages/question_bank_page.dart';
-import 'package:learnest_fresh/pages/ai_teacher_page.dart';
-import 'package:learnest_fresh/pages/learning_report_page.dart';
-import 'package:learnest_fresh/pages/profile_page.dart';
+import 'package:learnest_fresh/pages/app_camera_page.dart';
+import 'package:learnest_fresh/pages/app_explore_setup_page.dart';
+import 'package:learnest_fresh/pages/app_learning_report_page.dart';
+import 'package:learnest_fresh/pages/app_profile_page.dart';
 
 class MainNavigator extends StatefulWidget {
   const MainNavigator({super.key});
@@ -15,12 +14,12 @@ class MainNavigator extends StatefulWidget {
 class _MainNavigatorState extends State<MainNavigator> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = const [
-    CameraPage(),
-    QuestionBankPage(topic: ''),
-    AITeacherPage(),
-    LearningReportPage(),
-    ProfilePage(),
+  final List<Widget> _pages = [
+    const AppCameraPage(),
+    const AppQuestionBankPage(),
+    const AppQuestionBankPage(), // AI Teacher placeholder
+    const LearningReportPage(),
+    const AppProfilePage(),
   ];
 
   final List<Map<String, dynamic>> _navItems = const [

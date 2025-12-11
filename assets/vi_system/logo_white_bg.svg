@@ -1,0 +1,55 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- White Background Version -->
+  <circle cx="256" cy="256" r="256" fill="white"/>
+  
+  <!-- Natural Sign Symbol in Teal -->
+  <g transform="translate(256, 256)">
+    <!-- Left long slanted bar -->
+    <line x1="-60" y1="120" x2="-35" y2="-120" 
+          stroke="#4A9B88" stroke-width="22" 
+          stroke-linecap="round"/>
+    <line x1="-60" y1="120" x2="-35" y2="-120" 
+          stroke="#4A9B88" stroke-width="30" 
+          opacity="0.3" stroke-linecap="round"/>
+    
+    <!-- Right long slanted bar -->
+    <line x1="35" y1="120" x2="60" y2="-120" 
+          stroke="#4A9B88" stroke-width="22" 
+          stroke-linecap="round"/>
+    <line x1="35" y1="120" x2="60" y2="-120" 
+          stroke="#4A9B88" stroke-width="30" 
+          opacity="0.3" stroke-linecap="round"/>
+    
+    <!-- Top horizontal bar -->
+    <line x1="-70" y1="-42" x2="70" y2="-42" 
+          stroke="#4A9B88" stroke-width="20" 
+          stroke-linecap="round"/>
+    <line x1="-70" y1="-42" x2="70" y2="-42" 
+          stroke="#4A9B88" stroke-width="26" 
+          opacity="0.3" stroke-linecap="round"/>
+    
+    <!-- Bottom horizontal bar -->
+    <line x1="-70" y1="42" x2="70" y2="42" 
+          stroke="#4A9B88" stroke-width="20" 
+          stroke-linecap="round"/>
+    <line x1="-70" y1="42" x2="70" y2="42" 
+          stroke="#4A9B88" stroke-width="26" 
+          opacity="0.3" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Brand Text -->
+  <text x="256" y="420" 
+        font-family="-apple-system, BlinkMacSystemFont, sans-serif" 
+        font-size="52" 
+        font-weight="700" 
+        fill="#1E3A5F" 
+        text-anchor="middle">Learnist.AI</text>
+  
+  <!-- Tagline -->
+  <text x="256" y="460" 
+        font-family="-apple-system, BlinkMacSystemFont, sans-serif" 
+        font-size="20" 
+        font-weight="400" 
+        fill="#64748B" 
+        text-anchor="middle">See • Sense • Spark</text>
+</svg>

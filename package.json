@@ -1,6 +1,6 @@
 {
-  "dependencies": {
-    "@supabase/supabase-js": "^2.86.0",
-    "dotenv": "^17.2.3"
+  "devDependencies": {
+    "stylelint": "^16.26.0",
+    "stylelint-config-standard": "^39.0.1"
   }
 }

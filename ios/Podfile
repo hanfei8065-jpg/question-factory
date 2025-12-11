@@ -44,7 +44,7 @@ post_install do |installer|
       # 1. 强制最低支持 iOS 13.0
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
       
-      # 2. 关闭所有“警告变错误”的开关
+      # 2. 关闭所有"警告变错误"的开关
       config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
       config.build_settings['SWIFT_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
       

@@ -182,16 +182,10 @@ Output ONLY valid JSON (no extra text):
     max_tokens: 3000
   });
 
-  console.log('DeepSeek API response:', response);
-  if (response.choices && response.choices[0] && response.choices[0].message) {
-    console.log('DeepSeek message:', response.choices[0].message);
-  }
-  if (!response.choices || !response.choices[0] || !response.choices[0].message || !response.choices[0].message.content) {
-    throw new Error('DeepSeek 返回格式错误或内容为空');
-  }
   const content = response.choices[0].message.content;
   const jsonMatch = content.match(/\[[\s\S]*\]/);
-  if (!jsonMatch) throw new Error('DeepSeek 返回内容不包含题目数组');
+  if (!jsonMatch) throw new Error('DeepSeek 返回格式错误');
+  
   const questions = JSON.parse(jsonMatch[0]);
   console.log(`✅ [Agent 1] 生成完成，共 ${questions.length} 道题`);
   return questions;
@@ -201,17 +195,23 @@ Output ONLY valid JSON (no extra text):
 // Agent 2: GPT-4o Mini 质检员
 // ============================================
 async function callGpt4oAgent(problem, expectedParams) {
-  const prompt = `You are a professional ${expectedParams.grade} ${expectedParams.subject} teacher following ${expectedParams.curriculum} curriculum. Your job is to check if the following question meets the exact same standards as you would use to create it:
+  const prompt = `You are a strict quality checker. This question should meet these standards:
+- Subject: ${expectedParams.subject}
+- Grade: ${expectedParams.grade}
+- Curriculum: ${expectedParams.curriculum}
+- Difficulty: ${expectedParams.difficulty}
+- Knowledge Point: ${expectedParams.knowledgePoint}
 
-Requirements:
-1. Each question must have exactly 4 options (A/B/C/D)
-2. Difficulty must match "${expectedParams.difficulty}" level
-3. Must focus strictly on "${expectedParams.knowledgePoint}"
-4. Clear wording, no ambiguous options
-5. Questions should align with ${expectedParams.curriculum} standards
+Your tasks:
+1. Independently solve this problem to verify 'correct_answer' is 100% correct
+2. Check if options are clear and unambiguous
+3. Verify the question matches "${expectedParams.grade}" knowledge level
+4. Confirm it tests "${expectedParams.knowledgePoint}"
+5. Verify difficulty matches "${expectedParams.difficulty}"
 
-If the question fully meets all requirements, reply ONLY with "APPROVED".
-If not, reply ONLY with "REJECTED: specific reason".
+Reply ONLY with one word:
+- If fully qualified: "APPROVED"
+- If not qualified: "REJECTED: specific reason"
 
 Question data:
 ${JSON.stringify(problem, null, 2)}`;
