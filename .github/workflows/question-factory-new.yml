@@ -1,87 +1,25 @@
-name: Auto Question Factory (Matrix Mode - 20x Parallel)
+name: 'App Factory Trigger'
 
 on:
   schedule:
-    # Run every 6 hours (4 times per day) - Reduced frequency due to 20x parallelism
-    # At 00:00, 06:00, 12:00, 18:00 UTC
-    - cron: '0 */6 * * *'
-  workflow_dispatch:
-    inputs:
-      force-subject:
-        description: 'Force specific subject (optional: math, physics, chemistry, olympiad)'
-        required: false
-        type: string
+    - cron: '0 */6 * * *' # 修改为：每6小时自动触发一次 (加快生产速度)
+  workflow_dispatch:      # 允许你在网页端手动点击按钮触发
 
 jobs:
-  # ==========================================
-  # 🚀 MATRIX STRATEGY: 20 Parallel Jobs
-  # ==========================================
-  # 4 subjects × 5 batches = 20 parallel executions
-  # Expected output: 20 jobs × 3 questions = 60 questions per run
-  # Daily output: 4 runs × 60 = 240 questions/day
-  # ==========================================
-  generate-questions-matrix:
+  trigger-factory:
     runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 20  # GitHub Free: 20 concurrent jobs, Pro: 60
-      fail-fast: false   # Continue other jobs even if one fails
-      matrix:
-        subject: [math, physics, chemistry, olympiad]
-        batch: [1, 2, 3, 4, 5]  # 5 batches per subject
-    
-    name: "${{ matrix.subject }}-batch-${{ matrix.batch }}"
-    
     steps:
-      - name: Checkout Repository
+      - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-      
-      - name: Generate Questions (Matrix Job)
+          node-version: '20'
+
+      - name: Run App Factory Trigger
+        # 关键修复：注入云端密钥，否则脚本无法连接 Supabase
         env:
-          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          TARGET_SUBJECT: ${{ matrix.subject }}
-        run: |
-          echo "🚀 Starting Matrix Job: ${{ matrix.subject }} - Batch ${{ matrix.batch }}"
-          echo "=================================================="
-          echo "Subject: ${{ matrix.subject }}"
-          echo "Batch ID: ${{ matrix.batch }}"
-          echo "Total Matrix Jobs: 20 (4 subjects × 5 batches)"
-          echo "=================================================="
-          
-          # Run question factory
-          cd question-factory
-          node question_factory_new.js
-          
-          echo "✅ Matrix Job Completed: ${{ matrix.subject }}-batch-${{ matrix.batch }}"
-      
-      - name: Upload Artifacts (Optional)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: questions-${{ matrix.subject }}-batch-${{ matrix.batch }}
-          path: question-factory/logs/
-          retention-days: 7
-  
-  # ==========================================
-  # 📊 Summary Job (Runs after all matrix jobs)
-  # ==========================================
-  summarize-results:
-    runs-on: ubuntu-latest
-    needs: generate-questions-matrix
-    if: always()
-    
-    steps:
-      - name: Generate Summary
-        run: |
-          echo "🎉 Matrix Execution Complete!"
-          echo "========================================"
-          echo "Total Jobs: 20 (4 subjects × 5 batches)"
-          echo "Expected Questions: ~60 (20 jobs × 3)"
-          echo "========================================"
-          echo "Check Supabase for new questions!"
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: node scripts/app_factory_trigger.js
