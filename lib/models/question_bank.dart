@@ -1,4 +1,3 @@
-
 enum QuestionType {
   math, // 数学
   physics, // 物理

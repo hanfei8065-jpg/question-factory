@@ -2,8 +2,8 @@ name: 'App Factory Trigger'
 
 on:
   schedule:
-    - cron: '0 */6 * * *' # 修改为：每6小时自动触发一次 (加快生产速度)
-  workflow_dispatch:      # 允许你在网页端手动点击按钮触发
+    - cron: '0 */2 * * *' # 核心修正：每2小时自动触发一次（全天12次）
+  workflow_dispatch:      # 保持手动触发功能
 
 jobs:
   trigger-factory:
@@ -18,8 +18,14 @@ jobs:
           node-version: '20'
 
       - name: Run App Factory Trigger
-        # 关键修复：注入云端密钥，否则脚本无法连接 Supabase
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: node scripts/app_factory_trigger.js
+        # 优化：通过简单的循环，每次任务自动连续触发 5 次请求
+        # 这样每次任务能产出 50 题，且每 10 题独立保存，极其安全稳定
+        run: |
+          for i in {1..5}; do
+            echo "🚀 正在执行第 $i 轮生产任务..."
+            node scripts/app_factory_trigger.js
+            sleep 5 # 每次请求间隔5秒，防止 API 频率过快
+          done

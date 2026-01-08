@@ -1,210 +1,452 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import '../widgets/handwriting_canvas.dart'; // ✅ 手写画板
+import 'package:math_expressions/math_expressions.dart';
+import 'dart:math' as math;
 
-/// 计算器风格
-enum CalculatorVariant {
-  classic, // 经典风格
-  dark, // 深色风格
-  blue, // 蓝色风格
-  gold, // 金色风格
-}
-
-/// 全屏计算器页面
-/// Layout: HandwritingCanvas (Top 1/3) + Calculator Keypad (Bottom 2/3)
 class CalculatorPage extends StatefulWidget {
-  final CalculatorVariant variant;
-
-  const CalculatorPage({super.key, required this.variant});
+  const CalculatorPage({super.key});
 
   @override
   State<CalculatorPage> createState() => _CalculatorPageState();
 }
 
 class _CalculatorPageState extends State<CalculatorPage> {
-  String _displayValue = "0";
-  String _history = "";
+  bool _isScientific = true;
+
+  // --- 计算器核心状态 ---
+  String _expression = "";
+  String _result = "0";
+
+  // --- 换算器核心状态 ---
+  double _inputValue = 0.0;
+  String _fromUnit = "mm";
+  String _toUnit = "cm";
+  final Map<String, double> _units = {
+    "mm": 0.001,
+    "cm": 0.01,
+    "m": 1.0,
+    "km": 1000.0,
+    "inch": 0.0254,
+    "ft": 0.3048,
+  };
+
+  // 1:1 还原色值
+  static const Color colorBg = Color(0xFFF9FAFB);
+  static const Color colorWhite = Color(0xFFFFFFFF);
+  static const Color colorTextPrimary = Color(0xFF111827);
+  static const Color colorTextSecondary = Color(0xFF6B7280);
+  static const Color colorBtnGray = Color(0xFFE5E7EB);
+  static const Color colorBtnPink = Color(0xFFFBCFE8);
+
+  // --- 核心逻辑：强化版表达式解析 ---
+  void _calculateResult() {
+    if (_expression.isEmpty) return;
+    try {
+      // 1. 基础符号转换
+      String finalExp = _expression
+          .replaceAll('×', '*')
+          .replaceAll('÷', '/')
+          .replaceAll('π', '3.1415926535')
+          .replaceAll('e', '2.7182818284');
+
+      // 2. 核心修复：处理根号逻辑 (√5 -> sqrt(5))
+      // 这里的正则会自动寻找根号后的数字并用括号括起来
+      finalExp = finalExp.replaceAllMapped(RegExp(r'√(\d+(\.\d+)?)'), (match) {
+        return 'sqrt(${match.group(1)})';
+      });
+
+      // 3. 处理隐式乘法：数字后面直接跟 sqrt 或 (
+      // 例如把 1sqrt(5) 变成 1*sqrt(5)
+      finalExp = finalExp.replaceAllMapped(RegExp(r'(\d)(sqrt|\()'), (match) {
+        return '${match.group(1)}*${match.group(2)}';
+      });
+
+      Parser p = Parser();
+      Expression exp = p.parse(finalExp);
+      ContextModel cm = ContextModel();
+      double eval = exp.evaluate(EvaluationType.REAL, cm);
+
+      setState(() {
+        _result = eval.toStringAsFixed(8).replaceAll(RegExp(r'\.?0+$'), "");
+      });
+    } catch (e) {
+      setState(() => _result = "Error");
+    }
+  }
+
+  // --- 核心逻辑：单位换算 ---
+  String _getConvertedValue() {
+    double meters = _inputValue * _units[_fromUnit]!;
+    double converted = meters / _units[_toUnit]!;
+    return converted.toStringAsFixed(4).replaceAll(RegExp(r'\.?0+$'), "");
+  }
 
   @override
   Widget build(BuildContext context) {
-    // 根据变体选择背景色 (适配 Braun 风格)
-    Color bgColor;
-    switch (widget.variant) {
-      case CalculatorVariant.classic:
-        bgColor = const Color(0xFFF5F5F5); // 经典白
-        break;
-      case CalculatorVariant.dark:
-        bgColor = const Color(0xFF1E1E1E); // 深空灰
-        break;
-      case CalculatorVariant.blue:
-        bgColor = const Color(0xFFE3F2FD); // 银河蓝
-        break;
-      case CalculatorVariant.gold:
-        bgColor = const Color(0xFFFFF8E1); // 晨曦金
-        break;
-      default:
-        bgColor = const Color(0xFFF5F5F5);
-    }
-
-    final isDark = widget.variant == CalculatorVariant.dark;
-    final textColor = isDark ? Colors.white : const Color(0xFF1E293B);
-
     return Scaffold(
-      backgroundColor: bgColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: textColor),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          _getVariantName(),
-          style: TextStyle(color: textColor, fontSize: 16),
-        ),
-        centerTitle: true,
-      ),
-      body: Column(
-        children: [
-          // 1. 手写画板 (Top 1/3)
-          Expanded(flex: 1, child: const HandwritingCanvas()),
-
-          // 2. 计算器键盘区域 (Bottom 2/3)
-          Expanded(
-            flex: 2,
-            child: Container(
-              decoration: BoxDecoration(
-                color: isDark ? Colors.black26 : Colors.white,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(24),
+      backgroundColor: colorBg,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(),
+            // 解决溢出：使用 Flexible 配合最低高度限制，确保按键区有固定空间
+            Flexible(
+              flex: 1,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 8,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, -2),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(24),
+                alignment: Alignment.bottomRight,
+                child: SingleChildScrollView(
+                  // 防止输入过长导致溢出
+                  reverse: true,
+                  child: _isScientific
+                      ? _buildSciDisplay()
+                      : _buildConvDisplay(),
                 ),
-                child: _buildCalculatorKeypad(textColor),
               ),
             ),
+            _buildKeypad(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- 1:1 UI 实现 ---
+  Widget _buildHeader() {
+    return Container(
+      height: 64, // 略微压缩 Header 高度腾出空间给按键
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(
+              Icons.arrow_back_ios_new,
+              size: 22,
+              color: colorTextPrimary,
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: colorWhite,
+              borderRadius: BorderRadius.circular(9999),
+            ),
+            child: Row(
+              children: [
+                _toggleBtn(
+                  "Scientific",
+                  _isScientific,
+                  () => setState(() => _isScientific = true),
+                ),
+                _toggleBtn(
+                  "Converter",
+                  !_isScientific,
+                  () => setState(() => _isScientific = false),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(
+            width: 40,
+            child: Icon(Icons.grid_view_rounded, size: 24),
           ),
         ],
       ),
     );
   }
 
-  /// 简单的计算器键盘 (MVP版本)
-  Widget _buildCalculatorKeypad(Color textColor) {
-    return GridView.count(
-      crossAxisCount: 4,
-      padding: const EdgeInsets.all(16),
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      children: [
-        // Row 1
-        _buildKey('C', textColor, isOperator: true),
-        _buildKey('÷', textColor, isOperator: true),
-        _buildKey('×', textColor, isOperator: true),
-        _buildKey('⌫', textColor, isOperator: true),
-        // Row 2
-        _buildKey('7', textColor),
-        _buildKey('8', textColor),
-        _buildKey('9', textColor),
-        _buildKey('-', textColor, isOperator: true),
-        // Row 3
-        _buildKey('4', textColor),
-        _buildKey('5', textColor),
-        _buildKey('6', textColor),
-        _buildKey('+', textColor, isOperator: true),
-        // Row 4
-        _buildKey('1', textColor),
-        _buildKey('2', textColor),
-        _buildKey('3', textColor),
-        _buildKey('=', textColor, isOperator: true, isEqual: true),
-        // Row 5 (last row)
-        _buildKey('0', textColor),
-        _buildKey('.', textColor),
-        _buildKey('()', textColor),
-        _buildKey('', textColor), // 空按钮占位
-      ],
-    );
-  }
-
-  Widget _buildKey(
-    String label,
-    Color textColor, {
-    bool isOperator = false,
-    bool isEqual = false,
-  }) {
-    if (label.isEmpty) return const SizedBox.shrink();
-
-    return Material(
-      color: isEqual
-          ? const Color(0xFF07C160) // WeChat Green
-          : isOperator
-          ? Colors.grey.shade300
-          : Colors.white,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: () => _onKeyTap(label),
-        borderRadius: BorderRadius.circular(12),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: isOperator ? FontWeight.w600 : FontWeight.normal,
-              color: isEqual ? Colors.white : textColor,
-            ),
+  Widget _toggleBtn(String l, bool active, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+        decoration: BoxDecoration(
+          color: active ? colorTextPrimary : Colors.transparent,
+          borderRadius: BorderRadius.circular(9999),
+        ),
+        child: Text(
+          l,
+          style: TextStyle(
+            color: active ? colorWhite : colorTextPrimary,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
     );
   }
 
-  void _onKeyTap(String key) {
-    // MVP: 简单的显示逻辑
+  Widget _buildSciDisplay() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          _expression,
+          style: const TextStyle(fontSize: 22, color: colorTextSecondary),
+        ),
+        Text(
+          _result,
+          style: const TextStyle(
+            fontSize: 54,
+            fontWeight: FontWeight.w400,
+            color: colorTextPrimary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildConvDisplay() {
+    return Row(
+      children: [
+        IconButton(
+          onPressed: () => setState(() {
+            final t = _fromUnit;
+            _fromUnit = _toUnit;
+            _toUnit = t;
+          }),
+          icon: const Icon(Icons.swap_vert, size: 32, color: colorTextPrimary),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              _unitRow(
+                _inputValue.toString().replaceAll(RegExp(r'\.0$'), ""),
+                _fromUnit,
+                54,
+                colorTextPrimary,
+                true,
+              ),
+              const SizedBox(height: 12),
+              _unitRow(
+                _getConvertedValue(),
+                _toUnit,
+                44,
+                colorTextSecondary,
+                false,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _unitRow(
+    String val,
+    String unit,
+    double size,
+    Color color,
+    bool isFrom,
+  ) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        Text(
+          val,
+          style: TextStyle(fontSize: size, color: color),
+        ),
+        const SizedBox(width: 8),
+        DropdownButton<String>(
+          value: unit,
+          underline: const SizedBox(),
+          icon: const Icon(Icons.keyboard_arrow_down, size: 16),
+          items: _units.keys
+              .map((u) => DropdownMenuItem(value: u, child: Text(u)))
+              .toList(),
+          onChanged: (v) =>
+              setState(() => isFrom ? _fromUnit = v! : _toUnit = v!),
+        ),
+      ],
+    );
+  }
+
+  // --- 键盘逻辑逻辑完善 ---
+  void _handlePress(String label) {
     setState(() {
-      if (key == 'C') {
-        _displayValue = '0';
-        _history = '';
-      } else if (key == '⌫') {
-        if (_displayValue.length > 1) {
-          _displayValue = _displayValue.substring(0, _displayValue.length - 1);
-        } else {
-          _displayValue = '0';
+      if (_isScientific) {
+        if (label == "AC") {
+          _expression = "";
+          _result = "0";
+        } else if (label == "=") {
+          _calculateResult();
+        } else if (label == "←") {
+          if (_expression.isNotEmpty)
+            _expression = _expression.substring(0, _expression.length - 1);
+        } else if (["sin", "cos", "tan", "log", "√"].contains(label)) {
+          _expression += "$label(";
+        } // 自动补齐左括号
+        else {
+          _expression += label;
         }
-      } else if (key == '=') {
-        // TODO: 实际计算逻辑
-        _history = _displayValue;
       } else {
-        if (_displayValue == '0') {
-          _displayValue = key;
-        } else {
-          _displayValue += key;
+        if (label == "AC")
+          _inputValue = 0;
+        else if (RegExp(r'[0-9]').hasMatch(label)) {
+          String current = _inputValue.toInt().toString();
+          _inputValue = double.parse("${current == '0' ? '' : current}$label");
         }
       }
     });
   }
 
-  String _getVariantName() {
-    switch (widget.variant) {
-      case CalculatorVariant.classic:
-        return '基础计算器';
-      case CalculatorVariant.dark:
-        return '科学计算器'; // 对应选择页的逻辑
-      case CalculatorVariant.blue:
-        return '高级函数';
-      case CalculatorVariant.gold:
-        return '图形计算器';
-      default:
-        return 'Calculator';
-    }
+  Widget _buildKeypad() {
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        16,
+        0,
+        16,
+        MediaQuery.of(context).padding.bottom + 12,
+      ),
+      child: _isScientific ? _buildSciKeypad() : _buildConvKeypad(),
+    );
+  }
+
+  Widget _buildSciKeypad() {
+    final List<String> f = [
+      "nCr",
+      "nPr",
+      "←",
+      "→",
+      "S⟷D",
+      "Rad",
+      "e",
+      "ln",
+      "log₁₀",
+      "log",
+      "(",
+      ")",
+      "sin",
+      "cos",
+      "tan",
+      "π",
+      "x!",
+      "||",
+      "°",
+      "⊟",
+      "x²",
+      "√",
+      "³√",
+      "ⁿ√",
+    ];
+    final List<String> m = [
+      "AC",
+      "±",
+      "%",
+      "÷",
+      "7",
+      "8",
+      "9",
+      "×",
+      "4",
+      "5",
+      "6",
+      "-",
+      "1",
+      "2",
+      "3",
+      "+",
+      "⏱",
+      "0",
+      ".",
+      "=",
+    ];
+    return Column(
+      children: [
+        _grid(f, 6, 44, 13, 14, 6, colorBtnGray), // 略微压缩科学按键高度防止溢出
+        const SizedBox(height: 6),
+        _grid(m, 4, 60, 19, 14, 6, colorBtnGray),
+      ],
+    );
+  }
+
+  Widget _buildConvKeypad() {
+    final List<String> m = [
+      "AC",
+      "±",
+      "%",
+      "÷",
+      "7",
+      "8",
+      "9",
+      "×",
+      "4",
+      "5",
+      "6",
+      "-",
+      "1",
+      "2",
+      "3",
+      "+",
+      "⏱",
+      "0",
+      ".",
+      "=",
+    ];
+    return _grid(m, 4, 76, 23, 22, 10, Color(0xFFD1D5DB));
+  }
+
+  Widget _grid(
+    List<String> labels,
+    int cols,
+    double h,
+    double fs,
+    double r,
+    double gap,
+    Color bg,
+  ) {
+    return GridDelegate(labels, cols, h, fs, r, gap, bg);
+  }
+
+  Widget GridDelegate(
+    List<String> labels,
+    int cols,
+    double h,
+    double fs,
+    double r,
+    double gap,
+    Color bg,
+  ) {
+    return GridView.builder(
+      padding: EdgeInsets.zero,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: cols,
+        mainAxisSpacing: gap,
+        crossAxisSpacing: gap,
+        mainAxisExtent: h,
+      ),
+      itemCount: labels.length,
+      itemBuilder: (context, index) {
+        String l = labels[index];
+        bool isPink = ["÷", "×", "-", "+", "="].contains(l);
+        return GestureDetector(
+          onTap: () => _handlePress(l),
+          child: Container(
+            decoration: BoxDecoration(
+              color: isPink ? colorBtnPink : bg,
+              borderRadius: BorderRadius.circular(r),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              l,
+              style: TextStyle(
+                color: colorTextPrimary,
+                fontSize: fs,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }

@@ -1,8 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
-import '../widgets/aitutor_sheet.dart';
-import '../constants/ai_personas.dart';
 
 class SolvingPage extends StatefulWidget {
   final String imagePath;
@@ -27,11 +25,6 @@ class _SolvingPageState extends State<SolvingPage> {
   final bool _isLoading = false;
 
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   void dispose() {
     _answerController.dispose();
     _confettiController.dispose();
@@ -41,51 +34,21 @@ class _SolvingPageState extends State<SolvingPage> {
   void _checkAnswer() {
     final userAnswer = _answerController.text.trim();
     if (userAnswer == _correctAnswer) {
-      setState(() {
-        _showBingo = true;
-      });
+      setState(() => _showBingo = true);
       _confettiController.play();
       Future.delayed(const Duration(milliseconds: 2500), () {
         if (mounted) setState(() => _showBingo = false);
       });
     } else {
-      final snackBar = SnackBar(
-        backgroundColor: Colors.orange.shade50,
-        duration: const Duration(seconds: 4),
-        content: RichText(
-          text: TextSpan(
-            style: const TextStyle(color: Colors.black87, fontSize: 16),
-            children: [
-              const TextSpan(text: 'Not quite. Check your signs! '),
-              const TextSpan(text: 'Want to practice this topic? '),
-              WidgetSpan(
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            Container(), // TODO: Replace with AppQuestionArenaPage(subject: 'math', topic: 'algebra')
-                      ),
-                    );
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 2),
-                    child: Text(
-                      'Go to Question Bank',
-                      style: TextStyle(
-                        color: Colors.blue,
-                        fontWeight: FontWeight.bold,
-                        decoration: TextDecoration.underline,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Color(0xFFFFF7ED),
+          content: Text(
+            '答案不完全正确，再检查一下？',
+            style: TextStyle(color: Colors.black87),
           ),
         ),
       );
-      ScaffoldMessenger.of(context).showSnackBar(snackBar);
     }
   }
 
@@ -127,41 +90,33 @@ class _SolvingPageState extends State<SolvingPage> {
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
+          children: const [
+            Text(
               'Bingo!',
               style: TextStyle(
                 fontSize: 72,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF22C55E),
-                shadows: [Shadow(color: Colors.white, blurRadius: 20)],
               ),
             ),
-            const SizedBox(height: 24),
-            const Text(
-              '答案正确！',
-              style: TextStyle(
-                fontSize: 24,
-                color: Colors.white,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+            SizedBox(height: 24),
+            Text('答案正确！', style: TextStyle(fontSize: 24, color: Colors.white)),
           ],
         ),
       ),
     );
   }
 
+  // ✅ 100% 清理后的解题区域：只有标题和过程
   Widget _buildSolutionSection() {
-    final persona = AI_PERSONAS['logic'] ?? {'name': 'Dr. Logic'};
     return SingleChildScrollView(
       padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'AI解题过程',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: Color(0xFF1E293B),
@@ -173,58 +128,18 @@ class _SolvingPageState extends State<SolvingPage> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8)],
+              boxShadow: const [
+                BoxShadow(color: Colors.black12, blurRadius: 8),
+              ],
             ),
             child: Text(
               _solutionProcess,
-              style: const TextStyle(fontSize: 16, color: Color(0xFF334155)),
+              style: const TextStyle(
+                fontSize: 16,
+                color: Color(0xFF334155),
+                height: 1.6,
+              ),
             ),
-          ),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: const Color(0xFFB9E4D4),
-                child: const Icon(Icons.psychology, color: Color(0xFF358373)),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Text(
-                  '卡住了吗？问问${persona['name'] ?? 'Dr. Logic'}。',
-                  style: const TextStyle(
-                    color: Color(0xFF358373),
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-              TextButton(
-                style: TextButton.styleFrom(
-                  backgroundColor: const Color(0xFF358373),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 6,
-                  ),
-                  shape: const StadiumBorder(),
-                ),
-                onPressed: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (_) => AITutorSheet(
-                      question: _solutionProcess,
-                      onClose: () => Navigator.of(context).pop(),
-                    ),
-                  );
-                },
-                child: const Text(
-                  'Chat',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
           ),
         ],
       ),
@@ -253,30 +168,19 @@ class _SolvingPageState extends State<SolvingPage> {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _answerController,
-                      decoration: const InputDecoration(
-                        hintText: '输入你的答案...',
-                        hintStyle: TextStyle(color: Color(0xFF94A3B8)),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                      ),
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                    ),
+              child: TextField(
+                controller: _answerController,
+                decoration: const InputDecoration(
+                  hintText: '输入你的答案...',
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.send, color: Color(0xFF358373)),
-                    onPressed: _checkAnswer,
-                  ),
-                ],
+                ),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
               ),
             ),
           ),
@@ -293,11 +197,7 @@ class _SolvingPageState extends State<SolvingPage> {
             ),
             child: const Text(
               '答案',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -330,11 +230,7 @@ class _SolvingPageState extends State<SolvingPage> {
                 color: Colors.white,
                 child: Image.file(File(widget.imagePath), fit: BoxFit.contain),
               ),
-              Expanded(
-                child: _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : _buildSolutionSection(),
-              ),
+              Expanded(child: _buildSolutionSection()),
               _buildBottomInputSection(),
             ],
           ),
@@ -344,10 +240,6 @@ class _SolvingPageState extends State<SolvingPage> {
             child: ConfettiWidget(
               confettiController: _confettiController,
               blastDirectionality: BlastDirectionality.explosive,
-              particleDrag: 0.05,
-              emissionFrequency: 0.05,
-              numberOfParticles: 30,
-              gravity: 0.2,
               shouldLoop: false,
               colors: const [
                 Colors.green,
@@ -361,36 +253,14 @@ class _SolvingPageState extends State<SolvingPage> {
           if (_showCalculatorOverlay)
             Positioned.fill(
               child: GestureDetector(
-                onPanUpdate: (details) {
-                  setState(() => _scribblePoints.add(details.localPosition));
-                },
-                onPanEnd: (_) {
-                  setState(() => _scribblePoints.add(const Offset(-1, -1)));
-                },
+                onPanUpdate: (d) =>
+                    setState(() => _scribblePoints.add(d.localPosition)),
+                onPanEnd: (_) =>
+                    setState(() => _scribblePoints.add(const Offset(-1, -1))),
                 child: Container(
                   color: Colors.black.withOpacity(0.55),
                   child: Stack(
                     children: [
-                      IgnorePointer(
-                        child: Opacity(
-                          opacity: 0.2,
-                          child: Column(
-                            children: [
-                              Container(
-                                width: double.infinity,
-                                height: 200,
-                                color: Colors.white,
-                                child: Image.file(
-                                  File(widget.imagePath),
-                                  fit: BoxFit.contain,
-                                ),
-                              ),
-                              Expanded(child: _buildSolutionSection()),
-                              _buildBottomInputSection(),
-                            ],
-                          ),
-                        ),
-                      ),
                       CustomPaint(
                         painter: _ScribblePainter(_scribblePoints),
                         size: Size.infinite,
@@ -401,18 +271,15 @@ class _SolvingPageState extends State<SolvingPage> {
                         bottom: 0,
                         child: Container(
                           height: MediaQuery.of(context).size.height * 0.48,
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             color: Colors.white,
-                            borderRadius: const BorderRadius.vertical(
+                            borderRadius: BorderRadius.vertical(
                               top: Radius.circular(28),
                             ),
-                            boxShadow: [
-                              BoxShadow(color: Colors.black12, blurRadius: 16),
-                            ],
                           ),
                           child: Center(
                             child: Text(
-                              'Calculator: ${_selectedCalculator ?? ''}',
+                              '计算器: ${_selectedCalculator ?? ''}',
                               style: const TextStyle(
                                 fontSize: 22,
                                 color: Color(0xFF358373),
@@ -445,13 +312,9 @@ class _SolvingPageState extends State<SolvingPage> {
   }
 }
 
-// =====================
-// 顶层 Painter 类（仅此处声明，不能嵌套在 State 类内）
-// =====================
 class _ScribblePainter extends CustomPainter {
   final List<Offset> points;
   _ScribblePainter(this.points);
-
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()

@@ -1,0 +1,19 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "flutter run calculator page",
+			"type": "shell",
+			"command": "flutter run",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "flutter run calculator page (final check)",
+			"type": "shell",
+			"command": "flutter run",
+			"isBackground": false,
+			"problemMatcher": []
+		}
+	]
+}

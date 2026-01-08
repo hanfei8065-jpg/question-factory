@@ -41,8 +41,8 @@ class ReviewService extends ChangeNotifier {
     // 加载保存的复习项
     await _loadReviewItems();
 
-    // 检查并设置复习提醒
-    _scheduleReviewNotifications();
+    // 检查并设置所有复习提醒
+    await _scheduleReviewNotifications();
 
     _isInitialized = true;
   }
@@ -134,11 +134,19 @@ class ReviewService extends ChangeNotifier {
       iOS: iosDetails,
     );
 
+    // 核心修复点：将 DateTime 转换为 tz.TZDateTime
+    final scheduledDate = tz.TZDateTime.from(item.nextReviewDate, tz.local);
+
+    // 核心修复点：防止调度过去的时间导致崩溃
+    if (scheduledDate.isBefore(tz.TZDateTime.now(tz.local))) {
+      return;
+    }
+
     await _notifications.zonedSchedule(
       item.id.hashCode,
       '复习提醒',
       '有题目需要复习了,点击查看详情',
-      tz.TZDateTime.from(item.nextReviewDate, tz.local),
+      scheduledDate,
       details,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:

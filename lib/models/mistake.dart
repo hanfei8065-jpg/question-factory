@@ -1,4 +1,3 @@
-
 class Mistake {
   final String id;
   final String question;

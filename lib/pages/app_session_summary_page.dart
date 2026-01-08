@@ -1,9 +1,48 @@
+// [LEARNEST_TESLA_SUMMARY_V3.0] - 结果展示页 (上线定稿版)
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+// --- 复用物理引擎 ---
+class TeslaScaleWrapper extends StatefulWidget {
+  final Widget child;
+  final VoidCallback? onTap;
+  const TeslaScaleWrapper({super.key, required this.child, this.onTap});
+  @override
+  State<TeslaScaleWrapper> createState() => _TeslaScaleWrapperState();
+}
+
+class _TeslaScaleWrapperState extends State<TeslaScaleWrapper>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 80));
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.93)
+        .animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => _controller.forward(),
+      onTapUp: (_) {
+        _controller.reverse();
+        HapticFeedback.lightImpact();
+        widget.onTap?.call();
+      },
+      onTapCancel: () => _controller.reverse(),
+      child: ScaleTransition(scale: _scaleAnimation, child: widget.child),
+    );
+  }
+}
 
 class SessionSummaryPage extends StatelessWidget {
   final int correctCount;
   final int totalCount;
-  final int timeSpent; // in seconds
+  final int timeSpent;
 
   const SessionSummaryPage({
     super.key,
@@ -19,171 +58,103 @@ class SessionSummaryPage extends StatelessWidget {
         : '0';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: Colors.white, // 改为纯白，更符合 Zen Mode
       body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Trophy Icon
-                Container(
-                  width: 120,
-                  height: 120,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF07C160),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.emoji_events,
-                    color: Colors.white,
-                    size: 60,
-                  ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 30),
+          child: Column(
+            children: [
+              const Spacer(),
+              // 奖杯勋章区 (使用 Tesla Red 高亮)
+              Container(
+                width: 140,
+                height: 140,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE82127).withOpacity(0.05),
+                  shape: BoxShape.circle,
                 ),
-
-                const SizedBox(height: 24),
-
-                // Great Job!
-                const Text(
-                  'Great Job!',
+                child: const Icon(Icons.emoji_events_outlined,
+                    color: Color(0xFFE82127), size: 70),
+              ),
+              const SizedBox(height: 32),
+              const Text("本次练习达成",
                   style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1E293B),
-                  ),
-                ),
+                      fontSize: 16, color: Colors.black38, letterSpacing: 2)),
+              const SizedBox(height: 12),
+              Text("$correctCount / $totalCount",
+                  style: const TextStyle(
+                      fontSize: 56,
+                      fontWeight: FontWeight.w900,
+                      fontFamily: 'Monospace')),
+              const SizedBox(height: 48),
 
-                const SizedBox(height: 16),
+              // 数据统计区
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildStatItem("正确率", "$accuracy%", Icons.verified_outlined),
+                  _buildStatItem(
+                      "总耗时",
+                      "${(timeSpent / 60).floor()}m ${timeSpent % 60}s",
+                      Icons.timer_outlined),
+                ],
+              ),
+              const Spacer(),
 
-                // Session Complete
-                const Text(
-                  'Session Complete',
-                  style: TextStyle(fontSize: 18, color: Color(0xFF64748B)),
-                ),
-
-                const SizedBox(height: 40),
-
-                // Stats Card
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      // Score
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Score',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Color(0xFF64748B),
-                            ),
-                          ),
-                          Text(
-                            '$correctCount / $totalCount',
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF07C160),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // Accuracy
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Accuracy',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Color(0xFF64748B),
-                            ),
-                          ),
-                          Text(
-                            '$accuracy%',
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF07C160),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      if (timeSpent > 0) ...[
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Time Spent',
+              // 底部按钮区 (Tesla 风格)
+              Column(
+                children: [
+                  TeslaScaleWrapper(
+                    onTap: () =>
+                        Navigator.popUntil(context, (route) => route.isFirst),
+                    child: Container(
+                      height: 60,
+                      decoration: BoxDecoration(
+                          color: Colors.black,
+                          borderRadius: BorderRadius.circular(16)),
+                      child: const Center(
+                          child: Text("返回首页",
                               style: TextStyle(
-                                fontSize: 16,
-                                color: Color(0xFF64748B),
-                              ),
-                            ),
-                            Text(
-                              '${(timeSpent ~/ 60)}m ${timeSpent % 60}s',
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF1E293B),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 40),
-
-                // Back to Home Button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF07C160),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: () {
-                      Navigator.of(context).popUntil((route) => route.isFirst);
-                    },
-                    child: const Text(
-                      'Back to Home',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold))),
                     ),
                   ),
-                ),
-              ],
-            ),
+                  const SizedBox(height: 16),
+                  TeslaScaleWrapper(
+                    onTap: () {/* 分享逻辑 */},
+                    child: Container(
+                      height: 60,
+                      decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(color: Colors.black12),
+                          borderRadius: BorderRadius.circular(16)),
+                      child: const Center(
+                          child: Text("生成分享卡片",
+                              style: TextStyle(
+                                  color: Colors.black87, fontSize: 16))),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildStatItem(String label, String value, IconData icon) {
+    return Column(
+      children: [
+        Icon(icon, color: Colors.black87, size: 28),
+        const SizedBox(height: 12),
+        Text(value,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 4),
+        Text(label,
+            style: const TextStyle(color: Colors.black26, fontSize: 12)),
+      ],
     );
   }
 }

@@ -1,94 +1,87 @@
 name: learnest_fresh
 description: "A new Flutter project."
 publish_to: 'none'
-
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.9.2
-  flutter: ">=3.19.0"
+  sdk: '>=3.2.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
-
+  cupertino_icons: ^1.0.6
+  
+  # 国际化与语言
   flutter_localizations:
     sdk: flutter
-  intl: ^0.20.2
+  intl: any
 
-  # Icons
-  cupertino_icons: ^1.0.8
-  
-  # Core Logic
-  image_picker: ^1.2.0
-  file_picker: ^8.1.6  # ✅ For PDF selection
-  http: ^1.5.0
-  provider: ^6.1.5+1
-  shared_preferences: ^2.5.3
-  path_provider: ^2.1.5
-  sqflite: ^2.4.2
-  flutter_dotenv: ^6.0.0
-  image: ^4.0.17
-  hive: ^2.2.3
-  crypto: ^3.0.3
-  uuid: ^4.3.3
-  supabase_flutter: ^2.8.0  # ✅ Supabase 集成
-  
-  # AI & ML
-  # google_ml_kit: ^0.16.3  # ⚠️ TEMPORARILY DISABLED - Too heavy (63 CocoaPods), blocking iOS build
-  camera: ^0.11.3
-  
-  # Math Tools
-  flutter_math_fork: ^0.7.4
-  math_expressions: ^2.4.0
-  
-  # UI & Animations
-  flutter_local_notifications: ^16.1.0
-  fl_chart: ^1.1.1
-  graphview: ^1.2.0
-  lottie: ^3.3.2
-  confetti: ^0.8.0
-  flutter_animate: ^4.5.2
-  google_fonts: ^6.3.2
-  flutter_svg: ^2.0.10  # ✅ SVG 图表支持 (Visual Question Bank)
-  
-  # Utils
-  permission_handler: ^12.0.1
-  app_settings: 5.1.0
-  share_plus: ^7.2.1
-  device_info_plus: ^10.1.0
-  screenshot: ^3.0.0  # ✅ Widget → Image 海报生成
+  # 状态管理
+  provider: any
 
-  # 注意：我删除了底下那一堆 'any' 的垃圾依赖，它们是报错的根源。
+  # 核心服务
+  http: any
+  shared_preferences: any
+  flutter_dotenv: any
+  supabase_flutter: any
+
+  # UI 资产
+  flutter_svg: any
+  lottie: any
+  fl_chart: any
+  confetti: any
+  
+  # 数学逻辑
+  math_expressions: any
+  flutter_math_fork: any
+
+  # 相机与图像处理
+  camera: any
+  image_picker: any
+  image: any
+  path_provider: any
+  path: any
+  
+  # 系统权限
+  permission_handler: any
+  device_info_plus: any
+  app_settings: any
+  
+  # 分享与通知
+  share_plus: any
+  flutter_local_notifications: any
+  timezone: any
+
+  # 数据库存储
+  sqflite: any
+  hive: any
+  hive_flutter: any
+  crypto: any
+  uuid: any
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
-  mockito: ^5.4.4
-  plugin_platform_interface: ^2.1.8
-  path_provider_platform_interface: ^2.1.2
-  build_runner: ^2.4.8
-  flutter_lints: ^5.0.0
-  flutter_launcher_icons: ^0.13.1  # ✅ App Icon Generator
+  flutter_lints: ^3.0.0
 
 flutter:
   uses-material-design: true
-  # generate: true  # ❌ DISABLED - We use custom Tr class, not .arb files
+  generate: true
+
   assets:
     - .env
-    - assets/images/
-    - assets/images/robot/
-    - assets/test_images/
-    - assets/vi_system/  # ✅ Learnist VI Visual Identity System
-    - assets/i18n/  # ✅ Language JSON files (en/zh/es/ja)
+    # ✅ 暂时注释掉报错的路径，等以后文件夹里有文件了再放开
+    # - assets/images/
+    # - assets/icons/
+    # - assets/lottie/
+    # - assets/svg/
 
-# ✅ Launcher Icon Configuration
-flutter_launcher_icons:
-  android: true
-  ios: true
-  image_path: "assets/images/logo.png"
-  adaptive_icon_background: "#07C160"  # WeChat Green
-  adaptive_icon_foreground: "assets/images/logo.png"
-  min_sdk_android: 21  # Android 5.0+
-  remove_alpha_ios: true  # ✅ Remove alpha channel for App Store compliance
+  # ✅ 字体同理，如果物理路径 assets/fonts/ 里还没放这些 ttf 文件，必须注释掉
+  # fonts:
+  #   - family: Tesla 
+  #     fonts:
+  #       - asset: assets/fonts/tesla.ttf
+  #   - family: DIN
+  #     fonts:
+  #       - asset: assets/fonts/din_bold.ttf
+  #         weight: 700
