@@ -158,14 +158,16 @@ Requirements:
 Output ONLY valid JSON (no extra text):
 [
   {
-    "problem_text": "Question text",
+    "content": "Question text here",
     "options": {"A": "Option A", "B": "Option B", "C": "Option C", "D": "Option D"},
-    "correct_answer": "A",
-    "subject": "${params.subject}",
-    "grade_level": "${params.grade}",
+    "answer": "A",
+    "explanation": "Step-by-step solution explaining why the answer is correct",
+    "subject_id": "${params.subject.toLowerCase()}",
+    "grade_id": "grade${params.grade.match(/\\d+/)[0]}",
+    "type": "choice",
+    "lang": "zh",
     "difficulty": "${params.difficulty}",
-    "knowledge_point": "${params.knowledgePoint}",
-    "curriculum": ["${params.subject}", "${params.grade}", "${params.curriculum}"]
+    "tags": ["${params.knowledgePoint}", "${params.curriculum}"]
   }
 ]`;
 
@@ -203,11 +205,12 @@ async function callGpt4oAgent(problem, expectedParams) {
 - Knowledge Point: ${expectedParams.knowledgePoint}
 
 Your tasks:
-1. Independently solve this problem to verify 'correct_answer' is 100% correct
+1. Independently solve this problem to verify 'answer' field is 100% correct
 2. Check if options are clear and unambiguous
 3. Verify the question matches "${expectedParams.grade}" knowledge level
 4. Confirm it tests "${expectedParams.knowledgePoint}"
 5. Verify difficulty matches "${expectedParams.difficulty}"
+6. Verify 'explanation' field has clear step-by-step solution
 
 Reply ONLY with one word:
 - If fully qualified: "APPROVED"

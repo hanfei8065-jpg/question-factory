@@ -66,12 +66,15 @@ class Question {
 
     return Question(
       id: map['id']?.toString() ?? '',
-      content: map['content'] ?? '',
+      content: map['content'] ?? map['problem_text'] ?? '', // ✅ 支持 problem_text
       options: map['options'] != null ? List<String>.from(map['options']) : [],
-      answer: map['answer'] ?? '',
+      answer:
+          map['answer'] ?? map['correct_answer'] ?? '', // ✅ 支持 correct_answer
       explanation: map['explanation'] ?? '',
-      subject: parseSubject(map['subject_id'] ?? map['subject']),
-      grade: parseGrade(map['grade_id'] ?? map['grade']),
+      subject: parseSubject(map['subject_id'] ?? map['subject']), // ✅ 支持两种字段
+      grade: parseGrade(map['grade_id'] ??
+          map['grade'] ??
+          map['grade_level']), // ✅ 支持 grade_level
       type: QuestionType.values.firstWhere(
         (e) => e.toString().split('.').last == (map['type'] ?? 'choice'),
         orElse: () => QuestionType.choice,
@@ -81,8 +84,8 @@ class Question {
       imagePath: map['imagePath'] as String?,
       isImageQuestion: map['isImageQuestion'] as bool? ?? false,
       lang: map['lang'],
-      subjectId: map['subject_id'],
-      gradeId: map['grade_id'],
+      subjectId: map['subject_id'] ?? map['subject'], // ✅ 兼容
+      gradeId: map['grade_id'] ?? map['grade_level'], // ✅ 兼容
       solution: map['solution'] != null
           ? QuestionSolution.fromJson(map['solution'] as Map<String, dynamic>)
           : null,

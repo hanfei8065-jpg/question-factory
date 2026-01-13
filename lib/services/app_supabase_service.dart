@@ -11,7 +11,6 @@ class AppSupabaseService {
     required String lang,
   }) async {
     try {
-      // 修正点 1：新版 Supabase 不需要 as List，直接等待即可
       final response = await _client
           .from('questions')
           .select()
@@ -27,7 +26,9 @@ class AppSupabaseService {
 
       // 修正点 2：显式转换类型
       final List<dynamic> data = response as List<dynamic>;
-      return data.map((item) => Question.fromMap(item as Map<String, dynamic>)).toList();
+      return data
+          .map((item) => Question.fromMap(item as Map<String, dynamic>))
+          .toList();
     } catch (e) {
       print('❌ AppSupabaseService 错误: $e');
       return [];
@@ -42,7 +43,7 @@ class AppSupabaseService {
           .from('questions')
           .select('*') // 使用 * 代表所有列
           .limit(1); // 只要知道总数，不需要拉取实际数据
-      
+
       // 注意：如果你只需要总数，Supabase 有更轻量的方法，但这里为了修复你的 Bug 先这样写
       return 0; // 暂时返回 0，优先保证上面取题的逻辑通畅
     } catch (e) {

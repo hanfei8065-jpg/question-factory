@@ -1,10 +1,10 @@
-// [LEARNEST_TESLA_ACCORDION_V5.0_FINAL_COMPLETE] - 完整逻辑+工厂对齐版
+// [LEARNEST_TESLA_ACCORDION_V5.1_BRIDGE_FIXED] - 题型/语言全链路对齐版
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:ui';
-import 'app_focus_mode_page.dart'; 
+import 'app_focus_mode_page.dart';
 
-// --- 1. 物理引擎：Tesla 缩放反馈 (完整还原) ---
+// --- 1. 物理引擎：Tesla 缩放反馈 ---
 class TeslaScaleWrapper extends StatefulWidget {
   final Widget child;
   final VoidCallback? onTap;
@@ -57,7 +57,7 @@ class _TeslaScaleWrapperState extends State<TeslaScaleWrapper>
   }
 }
 
-// --- 2. 视觉组件：全息矩阵磁贴 (完整还原) ---
+// --- 2. 视觉组件：全息矩阵磁贴 ---
 class TeslaMatrixTile extends StatelessWidget {
   final String label;
   final int weight;
@@ -127,7 +127,7 @@ class TeslaMatrixTile extends StatelessWidget {
   }
 }
 
-// --- 3. 视觉组件：概览胶囊 (完整还原) ---
+// --- 3. 视觉组件：概览胶囊 ---
 class TeslaSummaryChip extends StatelessWidget {
   final String label;
   final int weight;
@@ -139,9 +139,15 @@ class TeslaSummaryChip extends StatelessWidget {
   Widget build(BuildContext context) {
     Color color;
     switch (weight) {
-      case 3: color = const Color(0xFFE82127); break;
-      case 2: color = const Color(0xFF005BC5); break;
-      default: color = const Color(0xFF424242); break;
+      case 3:
+        color = const Color(0xFFE82127);
+        break;
+      case 2:
+        color = const Color(0xFF005BC5);
+        break;
+      default:
+        color = const Color(0xFF424242);
+        break;
     }
 
     return Container(
@@ -154,13 +160,14 @@ class TeslaSummaryChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold),
+        style:
+            TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold),
       ),
     );
   }
 }
 
-// --- 4. 主页面：垂直指挥官 (深度修正版) ---
+// --- 4. 主页面：垂直指挥官 ---
 class AppQuestionArenaPage extends StatefulWidget {
   final String subjectId;
   final String grade;
@@ -180,12 +187,18 @@ class AppQuestionArenaPage extends StatefulWidget {
 class _AppQuestionArenaPageState extends State<AppQuestionArenaPage> {
   int _expandedSectionIndex = -1;
 
-  // ✅ 核心字典：用于将 UI 翻译成工厂 ID
   final Map<String, String> _subjectMap = {
     '数学': 'math',
     '物理': 'physics',
     '化学': 'chemistry',
     '数学奥林匹克': 'math_olympiad'
+  };
+
+  // ✅ 题型字典对齐工厂 ID
+  final Map<String, String> _typeMap = {
+    '选择题': 'choice',
+    '填空题': 'fill_in',
+    '应用题': 'word_problem'
   };
 
   final Map<String, String> _langMap = {
@@ -200,48 +213,132 @@ class _AppQuestionArenaPageState extends State<AppQuestionArenaPage> {
     '年级': {},
     '难度': {},
     '知识点': {},
-    '语言': {},
+    '题型': {},
     '题量': {}
   };
 
   final List<String> _subjects = ['数学', '数学奥林匹克', '物理', '化学'];
   final List<String> _grades = List.generate(12, (index) => '${index + 1}年级');
   final List<String> _difficulties = ['初级难度', '中级难度', '高级难度'];
-  final List<String> _languages = ['中文', 'English', 'Español', '日本語'];
-  final List<String> _limits = ['5', '15', '25', '35', '45', '55', '75', '90', '100'];
+  final List<String> _types = ['选择题', '填空题', '应用题'];
+  final List<String> _limits = [
+    '5',
+    '15',
+    '25',
+    '35',
+    '45',
+    '55',
+    '75',
+    '90',
+    '100'
+  ];
 
-  // --- 逻辑：动态知识点 (完整还原) ---
   List<String> _getDynamicKnowledgePoints() {
     String activeSubject = '数学';
     if (_configurationWeights['学科']!.isNotEmpty)
       activeSubject = _configurationWeights['学科']!.keys.first;
-    String activeGrade = '3年级';
+    String activeGrade = 'Grade 9-10'; // ✅ 默认改为美国年级
     if (_configurationWeights['年级']!.isNotEmpty)
       activeGrade = _configurationWeights['年级']!.keys.first;
 
+    // ✅ 修改：使用美国教育体系的知识点
     if (activeSubject == '数学') {
-      if (activeGrade.contains('1') || activeGrade.contains('2'))
-        return ['Counting (数数)', 'Addition (加法)', 'Subtraction (减法)', 'Shapes (图形)'];
-      if (activeGrade == '3年级')
-        return ['Addition (万以内加法)', 'Geometry (四边形)', 'Fractions (分数初步)', 'Time (时分秒)', 'Length (长度单位)'];
-      return ['Linear Equations', 'Functions', 'Geometry', 'Probability', 'Calculus'];
+      if (activeGrade == 'Grade 6-8')
+        return [
+          'Fractions & Decimals',
+          'Ratios & Proportions',
+          'Expressions & Equations',
+          'Geometry Basics',
+          'Statistics & Probability'
+        ];
+      if (activeGrade == 'Grade 9-10')
+        return [
+          'Linear Equations',
+          'Quadratic Functions',
+          'Exponents & Radicals',
+          'Geometry Proofs',
+          'Data Analysis'
+        ];
+      if (activeGrade == 'Grade 11-12')
+        return [
+          'Polynomial Functions',
+          'Trigonometry',
+          'Statistics',
+          'Calculus Concepts',
+          'Vectors'
+        ];
     }
-    if (activeSubject == '数学奥林匹克') return ['Number Theory', 'Combinatorics', 'Logic', 'Optimization'];
-    if (activeSubject == '物理') return ['Mechanics', 'Optics', 'Thermodynamics', 'Electromagnetism'];
-    if (activeSubject == '化学') return ['Periodic Table', 'Reactions', 'Organic', 'Acids & Bases'];
+
+    if (activeSubject == '物理') {
+      if (activeGrade == 'Grade 6-8')
+        return [
+          'Force & Motion',
+          'Energy Transfer',
+          'Waves & Sound',
+          'Light & Optics',
+          'Magnetism Basics'
+        ];
+      if (activeGrade == 'Grade 9-10')
+        return [
+          'Newton\'s Laws',
+          'Energy Conservation',
+          'Electricity & Circuits',
+          'Wave Properties',
+          'Thermodynamics'
+        ];
+      if (activeGrade == 'Grade 11-12')
+        return [
+          'Momentum & Collisions',
+          'Electromagnetism',
+          'Quantum Mechanics Intro',
+          'Relativity Basics',
+          'Nuclear Physics'
+        ];
+    }
+
+    if (activeSubject == '化学') {
+      if (activeGrade == 'Grade 6-8')
+        return [
+          'Matter States',
+          'Chemical Reactions',
+          'Periodic Table Intro',
+          'Acids & Bases',
+          'Mixtures & Solutions'
+        ];
+      if (activeGrade == 'Grade 9-10')
+        return [
+          'Atomic Structure',
+          'Chemical Bonding',
+          'Stoichiometry',
+          'Gas Laws',
+          'Redox Reactions'
+        ];
+      if (activeGrade == 'Grade 11-12')
+        return [
+          'Thermodynamics',
+          'Chemical Equilibrium',
+          'Electrochemistry',
+          'Organic Chemistry',
+          'Kinetics'
+        ];
+    }
+
+    if (activeSubject == '数学奥林匹克')
+      return ['Number Theory', 'Combinatorics', 'Logic', 'Optimization'];
+
     return ['General Knowledge'];
   }
 
   void _handleTileTap(String category, String item) {
     setState(() {
       int currentWeight = _configurationWeights[category]?[item] ?? 0;
-      // 核心单选分类
-      if (['学科', '语言', '题量', '年级'].contains(category)) {
+      // 单选逻辑
+      if (['学科', '题型', '题量', '年级'].contains(category)) {
         _configurationWeights[category]!.clear();
         if (currentWeight == 0) _configurationWeights[category]![item] = 1;
         return;
       }
-      // 权重循环逻辑 (0 -> 1 -> 2 -> 3 -> 0)
+      // 权重逻辑 (0-1-2-3-0)
       int nextWeight = (currentWeight + 1) % 4;
       if (nextWeight == 0)
         _configurationWeights[category]!.remove(item);
@@ -261,19 +358,29 @@ class _AppQuestionArenaPageState extends State<AppQuestionArenaPage> {
             _buildHeader(),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 children: [
-                  _buildAccordionSection(0, '学科', Icons.category_outlined, _subjects),
+                  _buildAccordionSection(
+                      0, '学科', Icons.category_outlined, _subjects),
                   const SizedBox(height: 12),
-                  _buildAccordionSection(1, '年级', Icons.school_outlined, _grades),
+                  _buildAccordionSection(
+                      1, '年级', Icons.school_outlined, _grades),
                   const SizedBox(height: 12),
-                  _buildAccordionSection(2, '难度', Icons.signal_cellular_alt, _difficulties),
+                  _buildAccordionSection(
+                      2, '难度', Icons.signal_cellular_alt, _difficulties),
                   const SizedBox(height: 12),
-                  _buildAccordionSection(3, '知识点', Icons.auto_awesome_mosaic_outlined, _getDynamicKnowledgePoints()),
+                  _buildAccordionSection(
+                      3,
+                      '知识点',
+                      Icons.auto_awesome_mosaic_outlined,
+                      _getDynamicKnowledgePoints()),
                   const SizedBox(height: 12),
-                  _buildAccordionSection(4, '语言', Icons.language, _languages),
+                  _buildAccordionSection(
+                      4, '题型', Icons.description_outlined, _types),
                   const SizedBox(height: 12),
-                  _buildAccordionSection(5, '题量', Icons.format_list_numbered, _limits),
+                  _buildAccordionSection(
+                      5, '题量', Icons.format_list_numbered, _limits),
                   const SizedBox(height: 100),
                 ],
               ),
@@ -291,18 +398,21 @@ class _AppQuestionArenaPageState extends State<AppQuestionArenaPage> {
       color: Colors.white,
       child: Row(
         children: [
-          const Text('试卷配置', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          const Text('试卷配置',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
           const Spacer(),
           TeslaScaleWrapper(
             onTap: () => _showHelpDialog(context),
-            child: const Icon(Icons.help_outline, size: 20, color: Colors.black87),
+            child:
+                const Icon(Icons.help_outline, size: 20, color: Colors.black87),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildAccordionSection(int index, String title, IconData icon, List<String> items) {
+  Widget _buildAccordionSection(
+      int index, String title, IconData icon, List<String> items) {
     bool isExpanded = _expandedSectionIndex == index;
     Map<String, int> selectedItems = _configurationWeights[title] ?? {};
 
@@ -313,13 +423,17 @@ class _AppQuestionArenaPageState extends State<AppQuestionArenaPage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(isExpanded ? 0.08 : 0.03), blurRadius: 10, offset: const Offset(0, 4))
+          BoxShadow(
+              color: Colors.black.withOpacity(isExpanded ? 0.08 : 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4))
         ],
       ),
       child: Column(
         children: [
           InkWell(
-            onTap: () => setState(() => _expandedSectionIndex = isExpanded ? -1 : index),
+            onTap: () =>
+                setState(() => _expandedSectionIndex = isExpanded ? -1 : index),
             child: Container(
               height: 64,
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -327,21 +441,32 @@ class _AppQuestionArenaPageState extends State<AppQuestionArenaPage> {
                 children: [
                   Container(
                       padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(color: const Color(0xFFF5F5F7), borderRadius: BorderRadius.circular(8)),
+                      decoration: BoxDecoration(
+                          color: const Color(0xFFF5F5F7),
+                          borderRadius: BorderRadius.circular(8)),
                       child: Icon(icon, size: 20, color: Colors.black87)),
                   const SizedBox(width: 12),
-                  Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
+                  Text(title,
+                      style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87)),
                   Expanded(
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       reverse: true,
                       child: Row(
                           children: selectedItems.entries
-                              .map((e) => TeslaSummaryChip(label: e.key, weight: e.value))
+                              .map((e) => TeslaSummaryChip(
+                                  label: e.key, weight: e.value))
                               .toList()),
                     ),
                   ),
-                  Icon(isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, color: Colors.black26),
+                  Icon(
+                      isExpanded
+                          ? Icons.keyboard_arrow_up
+                          : Icons.keyboard_arrow_down,
+                      color: Colors.black26),
                 ],
               ),
             ),
@@ -353,7 +478,10 @@ class _AppQuestionArenaPageState extends State<AppQuestionArenaPage> {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3, childAspectRatio: 2.2, crossAxisSpacing: 10, mainAxisSpacing: 10),
+                    crossAxisCount: 3,
+                    childAspectRatio: 2.2,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10),
                 itemCount: items.length,
                 itemBuilder: (context, idx) {
                   String item = items[idx];
@@ -371,9 +499,10 @@ class _AppQuestionArenaPageState extends State<AppQuestionArenaPage> {
   }
 
   Widget _buildBottomBar() {
-    bool isReady = _configurationWeights['学科']!.isNotEmpty && 
-                   _configurationWeights['年级']!.isNotEmpty &&
-                   _configurationWeights['语言']!.isNotEmpty;
+    // ✅ 逻辑：选齐学科/年级/题型即可解锁
+    bool isReady = _configurationWeights['学科']!.isNotEmpty &&
+        _configurationWeights['年级']!.isNotEmpty &&
+        _configurationWeights['题型']!.isNotEmpty;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -381,27 +510,33 @@ class _AppQuestionArenaPageState extends State<AppQuestionArenaPage> {
       child: TeslaScaleWrapper(
         onTap: () {
           if (isReady) {
-            // ✅ 核心对齐逻辑：将 UI 文本转换为工厂 ID
             String rawSubject = _configurationWeights['学科']!.keys.first;
             String subjectId = _subjectMap[rawSubject] ?? 'math';
 
             String rawGrade = _configurationWeights['年级']!.keys.first;
             String gradeNum = rawGrade.replaceAll(RegExp(r'[^0-9]'), '');
-            String gradeId = 'grade$gradeNum'; // 转换为工厂标准 grade10
+            String gradeId = 'grade$gradeNum';
 
-            String rawLang = _configurationWeights['语言']!.keys.first;
-            String langCode = _langMap[rawLang] ?? 'en';
+            String rawType = _configurationWeights['题型']!.keys.first;
+            String typeId = _typeMap[rawType] ?? 'choice';
 
-            int limit = int.tryParse(_configurationWeights['题量']?.keys.first ?? '10') ?? 10;
-            String topic = _configurationWeights['知识点']?.keys.join(', ') ?? 'General';
+            String langCode = 'zh'; // 默认语言
 
+            int limit =
+                int.tryParse(_configurationWeights['题量']?.keys.first ?? '10') ??
+                    10;
+            String topic =
+                _configurationWeights['知识点']?.keys.join(', ') ?? 'General';
+
+            // ✅ 核心修复：添加 questionType 参数传递，完美桥接下一页
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) => AppFocusModePage(
-                  subjectId: subjectId, // 传 'math'
-                  grade: gradeId,       // 传 'grade10'
-                  lang: langCode,       // 传 'zh' 或 'en'
+                  subjectId: subjectId,
+                  grade: gradeId,
+                  lang: langCode,
+                  questionType: typeId,
                   questionLimit: limit,
                   topic: topic,
                 ),
@@ -415,8 +550,9 @@ class _AppQuestionArenaPageState extends State<AppQuestionArenaPage> {
               color: isReady ? Colors.black : const Color(0xFFE0E0E0),
               borderRadius: BorderRadius.circular(14)),
           child: Center(
-              child: Text(isReady ? '生成专属试卷' : '请选齐 学科/年级/语言',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+              child: Text(isReady ? '生成专属试卷' : '请选齐 学科/年级/题型',
+                  style: const TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold))),
         ),
       ),
     );
@@ -428,19 +564,25 @@ class _AppQuestionArenaPageState extends State<AppQuestionArenaPage> {
       builder: (context) => BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
         child: Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text("权重计算方式", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text("权重计算方式",
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 20),
                 _buildHelpRow(const Color(0xFF424242), "深灰：普通比重"),
                 _buildHelpRow(const Color(0xFF005BC5), "蓝色：较高比重"),
                 _buildHelpRow(const Color(0xFFE82127), "红色：核心考点"),
                 const SizedBox(height: 20),
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text("知道了", style: TextStyle(color: Colors.black))),
+                TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text("知道了",
+                        style: TextStyle(color: Colors.black))),
               ],
             ),
           ),
@@ -454,7 +596,10 @@ class _AppQuestionArenaPageState extends State<AppQuestionArenaPage> {
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
-          Container(width: 12, height: 12, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+          Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
           const SizedBox(width: 10),
           Text(text),
         ],
